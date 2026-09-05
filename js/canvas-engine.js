@@ -23,6 +23,13 @@ class CanvasEngine {
       height: 0,
       aspectRatio: 1
     };
+
+    // Compression and Export State
+    this.lastCompressedBlob = null;
+    this.lastTargetKB = null;
+    this.exportFormat = 'image/jpeg';
+    this.exportQuality = 0.92;
+    this._applyingCompression = false;
   }
 
   /**
@@ -39,9 +46,14 @@ class CanvasEngine {
       img.onload = () => {
         this.originalImage = img;
         this.originalBlob = file;
+        this.lastCompressedBlob = null;
+        this.lastTargetKB = null;
+        const mimeType = (file && file.type && file.type.startsWith('image/')) ? file.type : 'image/jpeg';
+        this.exportFormat = mimeType;
+        this.exportQuality = 0.92;
         this.meta = {
           name: file.name ? file.name.replace(/\.[^/.]+$/, "") : 'image',
-          type: file.type || 'image/png',
+          type: mimeType,
           size: file.size || 0,
           width: img.naturalWidth || img.width,
           height: img.naturalHeight || img.height,
@@ -68,13 +80,17 @@ class CanvasEngine {
   /**
    * Load from an Image element directly (e.g. sample image)
    */
-  loadFromImageElement(img, name = 'sample-image') {
+  loadFromImageElement(img, name = 'sample-image', type = 'image/jpeg') {
     this.originalImage = img;
+    this.lastCompressedBlob = null;
+    this.lastTargetKB = null;
+    this.exportFormat = type;
+    this.exportQuality = 0.92;
     const w = img.naturalWidth || img.width;
     const h = img.naturalHeight || img.height;
     this.meta = {
       name: name,
-      type: 'image/png',
+      type: type,
       size: 0,
       width: w,
       height: h,
@@ -116,6 +132,10 @@ class CanvasEngine {
     this.meta.width = this.currentCanvas.width;
     this.meta.height = this.currentCanvas.height;
     this.meta.aspectRatio = this.meta.width / this.meta.height;
+    if (!this._applyingCompression) {
+      this.lastCompressedBlob = null;
+      this.lastTargetKB = null;
+    }
   }
 
   getCanvas() {
@@ -848,24 +868,44 @@ class CanvasEngine {
    * @param {number} quality 0.01 to 1.0
    * @returns {Promise<Blob>}
    */
-  async exportBlob(format = 'image/png', quality = 0.92) {
-    if (format === 'image/x-icon' || format === 'image/ico') {
+  async exportBlob(format = null, quality = null) {
+    const finalFormat = format || this.exportFormat || 'image/jpeg';
+    const finalQuality = (quality !== null && quality !== undefined) ? quality : (this.exportQuality || 0.92);
+
+    if (finalFormat === 'image/x-icon' || finalFormat === 'image/ico') {
       return this.exportICO();
     }
 
-    if (format === 'image/bmp') {
+    if (finalFormat === 'image/bmp') {
       return this.exportBMP();
     }
 
+    // If we have a verified compressed blob that satisfies the requested format, return it directly!
+    if (this.lastCompressedBlob && (!format || format === this.exportFormat || format === this.lastCompressedBlob.type)) {
+      return this.lastCompressedBlob;
+    }
+
     return new Promise((resolve) => {
-      this.currentCanvas.toBlob((blob) => {
+      let canvasToExport = this.currentCanvas;
+      if (finalFormat === 'image/jpeg') {
+        const temp = document.createElement('canvas');
+        temp.width = this.currentCanvas.width;
+        temp.height = this.currentCanvas.height;
+        const ctx = temp.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, temp.width, temp.height);
+        ctx.drawImage(this.currentCanvas, 0, 0);
+        canvasToExport = temp;
+      }
+
+      canvasToExport.toBlob((blob) => {
         if (!blob) {
           // Fallback to PNG if browser fails to encode specific format
-          this.currentCanvas.toBlob(resolve, 'image/png');
+          canvasToExport.toBlob(resolve, 'image/png');
         } else {
           resolve(blob);
         }
-      }, format, quality);
+      }, finalFormat, finalQuality);
     });
   }
 

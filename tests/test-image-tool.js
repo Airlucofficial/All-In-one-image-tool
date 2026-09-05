@@ -20,7 +20,34 @@ global.Blob = class MockBlob {
   }
 };
 
+global.document = {
+  createElement(tag) {
+    if (tag === 'canvas') {
+      return {
+        width: 1920,
+        height: 1080,
+        getContext() {
+          return {
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+            drawImage() {},
+            clearRect() {},
+            fillRect() {},
+            getImageData() { return { data: new Uint8Array(400) }; }
+          };
+        },
+        toBlob(cb, fmt, q) {
+          // Default uncompressed mock canvas blob is ~1.5 MB (1,500,000 bytes)
+          cb(new global.Blob([new Uint8Array(1500000)], { type: fmt || 'image/png' }));
+        }
+      };
+    }
+    return {};
+  }
+};
+
 const SmartCompressor = require('../js/compressor.js');
+const CanvasEngine = require('../js/canvas-engine.js');
 const PaletteExtractor = require('../js/palette.js');
 const BatchProcessor = require('../js/batch.js');
 const HistoryManager = require('../js/history.js');
@@ -32,6 +59,18 @@ function it(name, fn) {
   totalTests++;
   try {
     fn();
+    console.log(`  ✓ PASS: ${name}`);
+    passedTests++;
+  } catch (err) {
+    console.error(`  ✗ FAIL: ${name}`);
+    console.error(`    ${err.message}`);
+  }
+}
+
+async function itAsync(name, fn) {
+  totalTests++;
+  try {
+    await fn();
     console.log(`  ✓ PASS: ${name}`);
     passedTests++;
   } catch (err) {
@@ -304,12 +343,103 @@ it('strictly ensures compressor candidate selection never chooses over-budget ca
   assert(bestUnderBlob.size <= targetBytes, 'Selected candidate must be strictly within budget');
 });
 
-console.log(`\n======================================================`);
-console.log(`Test Execution Finished: ${passedTests}/${totalTests} Passed.`);
-console.log(`======================================================\n`);
+async function runSuite8() {
+  console.log('\n--- Suite 8: Compression Target Size Guarantee & Export Caching ---');
 
-if (passedTests !== totalTests) {
-  process.exit(1);
+  it('CanvasEngine initializes with default exportFormat and null cached compression', () => {
+    const engine = new CanvasEngine();
+    assert.strictEqual(engine.exportFormat, 'image/jpeg');
+    assert.strictEqual(engine.lastCompressedBlob, null);
+    assert.strictEqual(engine.lastTargetKB, null);
+  });
+
+  await itAsync('exportBlob returns lastCompressedBlob directly when available, preserving target budget', async () => {
+    const engine = new CanvasEngine();
+    const target500KBBlob = new global.Blob([new Uint8Array(485000)], { type: 'image/jpeg' });
+    engine.lastCompressedBlob = target500KBBlob;
+    engine.exportFormat = 'image/jpeg';
+    engine.exportQuality = 0.55;
+
+    const exported = await engine.exportBlob('image/jpeg');
+    assert.strictEqual(exported.size, 485000, 'Exported blob must be exactly the compressed blob size');
+    assert(exported.size <= 500 * 1024, 'Exported blob must be strictly under 500 KB budget');
+  });
+
+  it('invalidates cached compressed blob upon canvas commitChanges unless applying compression', () => {
+    const engine = new CanvasEngine();
+    const target500KBBlob = new global.Blob([new Uint8Array(485000)], { type: 'image/jpeg' });
+    engine.lastCompressedBlob = target500KBBlob;
+
+    // Simulate applying a subsequent tool (e.g. crop or filter)
+    engine.commitChanges();
+    assert.strictEqual(engine.lastCompressedBlob, null, 'Cached blob must be invalidated after modifications');
+
+    // Verify that during _applyingCompression, it is preserved
+    engine._applyingCompression = true;
+    engine.commitChanges();
+    engine.lastCompressedBlob = target500KBBlob;
+    engine._applyingCompression = false;
+    assert.strictEqual(engine.lastCompressedBlob, target500KBBlob, 'Cached blob preserved when applying compression');
+  });
+
+  it('verifies 500 KB target formatBytes and byte conversion', () => {
+    assert.strictEqual(SmartCompressor.formatBytes(500 * 1024), '500 KB');
+    assert.strictEqual(SmartCompressor.formatBytes(485 * 1024), '485 KB');
+    assert.strictEqual(SmartCompressor.formatBytes(1500000), '1.4 MB');
+  });
+
+  await itAsync('end-to-end simulation: upload 2MB image, compress to 500KB target, apply and export yields <= 500KB', async () => {
+    const engine = new CanvasEngine();
+
+    // 1. Simulate loading a 2 MB (2,097,152 bytes) JPEG image
+    const initial2MBFile = {
+      name: 'vacation-photo.jpg',
+      type: 'image/jpeg',
+      size: 2097152
+    };
+    engine.exportFormat = initial2MBFile.type;
+    engine.meta.size = initial2MBFile.size;
+
+    assert.strictEqual(engine.exportFormat, 'image/jpeg');
+    assert.strictEqual(engine.meta.size, 2097152);
+
+    // 2. User selects target: 500 KB, format: image/jpeg
+    const targetKB = 500;
+    const targetBytes = targetKB * 1024; // 512,000 bytes
+
+    // Simulate compressor output for 500 KB target (482 KB)
+    const compressedBlob = new global.Blob([new Uint8Array(482000)], { type: 'image/jpeg' });
+    assert(compressedBlob.size <= targetBytes, 'Compressor output must be <= 500 KB');
+
+    // 3. User clicks "Apply changes"
+    engine._applyingCompression = true;
+    engine.commitChanges();
+    engine._applyingCompression = false;
+    engine.lastCompressedBlob = compressedBlob;
+    engine.lastTargetKB = targetKB;
+    engine.exportFormat = 'image/jpeg';
+    engine.exportQuality = 0.52;
+    engine.meta.size = compressedBlob.size;
+
+    // 4. User exports image
+    const exportedBlob = await engine.exportBlob('image/jpeg');
+
+    // 5. Verify the exported file is ~482 KB, strictly <= 500 KB, NOT 1.5 MB or 2 MB
+    assert.strictEqual(exportedBlob.size, 482000, 'Exported blob must be exactly the compressed 482 KB');
+    assert(exportedBlob.size <= targetBytes, 'Exported blob must be <= 500 KB target budget');
+    assert.notStrictEqual(exportedBlob.size, 1500000, 'Exported blob must NOT be 1.5 MB uncompressed canvas default');
+    assert.notStrictEqual(exportedBlob.size, 2097152, 'Exported blob must NOT be 2 MB original file size');
+  });
+
+  console.log(`\n======================================================`);
+  console.log(`Test Execution Finished: ${passedTests}/${totalTests} Passed.`);
+  console.log(`======================================================\n`);
+
+  if (passedTests !== totalTests) {
+    process.exit(1);
+  }
 }
+
+runSuite8();
 
 

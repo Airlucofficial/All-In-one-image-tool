@@ -22,6 +22,10 @@ class SmartCompressor {
     workCanvas.width = sourceCanvas.width;
     workCanvas.height = sourceCanvas.height;
     let workCtx = workCanvas.getContext('2d');
+    if (format === 'image/jpeg') {
+      workCtx.fillStyle = '#ffffff';
+      workCtx.fillRect(0, 0, workCanvas.width, workCanvas.height);
+    }
     workCtx.drawImage(sourceCanvas, 0, 0);
 
     let lowQ = 0.05;
@@ -32,6 +36,8 @@ class SmartCompressor {
     let smallestOverQuality = lowQ;
     let iterations = 0;
     const maxIterations = 8;
+    let finalWidth = sourceCanvas.width;
+    let finalHeight = sourceCanvas.height;
 
     // 1. Binary search on quality at full resolution
     while (iterations < maxIterations) {
@@ -76,15 +82,19 @@ class SmartCompressor {
         workCtx.imageSmoothingEnabled = true;
         workCtx.imageSmoothingQuality = 'high';
         workCtx.clearRect(0, 0, newW, newH);
+        if (format === 'image/jpeg') {
+          workCtx.fillStyle = '#ffffff';
+          workCtx.fillRect(0, 0, newW, newH);
+        }
         workCtx.drawImage(sourceCanvas, 0, 0, newW, newH);
 
         // Binary search quality for this scale
-        let sLow = 0.2;
-        let sHigh = 0.92;
+        let sLow = 0.05;
+        let sHigh = 0.95;
         let sBest = null;
         let sBestQ = 0.7;
 
-        for (let sIter = 0; sIter < 4; sIter++) {
+        for (let sIter = 0; sIter < 5; sIter++) {
           let sMid = (sLow + sHigh) / 2;
           let sBlob = await this.getCanvasBlob(workCanvas, format, sMid);
           if (!sBlob) break;
@@ -103,6 +113,8 @@ class SmartCompressor {
         if (sBest) {
           finalBlob = sBest;
           finalQuality = sBestQ;
+          finalWidth = newW;
+          finalHeight = newH;
           break;
         }
 
@@ -112,8 +124,17 @@ class SmartCompressor {
 
     // Ultimate fallback if extreme restriction
     if (!finalBlob) {
-      finalBlob = smallestOverBlob || (await this.getCanvasBlob(workCanvas, format, 0.05));
-      finalQuality = smallestOverQuality;
+      if (smallestOverBlob) {
+        finalBlob = smallestOverBlob;
+        finalQuality = smallestOverQuality;
+        finalWidth = sourceCanvas.width;
+        finalHeight = sourceCanvas.height;
+      } else {
+        finalBlob = await this.getCanvasBlob(workCanvas, format, 0.05);
+        finalQuality = 0.05;
+        finalWidth = workCanvas.width;
+        finalHeight = workCanvas.height;
+      }
     }
 
     if (onProgress) onProgress(100, Math.round((finalBlob ? finalBlob.size : 0) / 1024));
@@ -123,8 +144,8 @@ class SmartCompressor {
     return {
       blob: finalBlob,
       quality: Math.round(finalQuality * 100) / 100,
-      width: workCanvas.width,
-      height: workCanvas.height,
+      width: finalWidth,
+      height: finalHeight,
       sizeKB: finalSizeKB
     };
   }

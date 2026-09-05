@@ -103,12 +103,86 @@ document.addEventListener('DOMContentLoaded', () => {
     dimensionsText.textContent = `${c.width} × ${c.height} px`;
     mpText.textContent = `${mp} MP`;
 
-    // Estimate memory/size
-    engine.exportBlob('image/jpeg', 0.92).then(b => {
-      sizeText.textContent = SmartCompressor.formatBytes(b.size);
+    // Estimate memory/size: prioritize verified compressed blob or dynamic estimate
+    if (engine.lastCompressedBlob) {
+      const sizeStr = SmartCompressor.formatBytes(engine.lastCompressedBlob.size);
+      sizeText.textContent = sizeStr;
       const estSizeBadge = document.getElementById('convertEstSize');
-      if (estSizeBadge) estSizeBadge.textContent = SmartCompressor.formatBytes(b.size);
+      if (estSizeBadge) estSizeBadge.textContent = sizeStr;
+      const compressResultBadge = document.getElementById('compressResultBadge');
+      if (compressResultBadge) {
+        compressResultBadge.textContent = `${sizeStr} (Ready to Export)`;
+        compressResultBadge.style.background = 'rgba(52, 199, 89, 0.15)';
+        compressResultBadge.style.color = '#248a3d';
+      }
+    } else {
+      const activeConvertBtn = document.querySelector('#convertFormatGroup .pill-option-btn.active');
+      const activeCompressBtn = document.querySelector('#compressFormatGroup .pill-option-btn.active');
+      const fmt = (currentTool === 'compress' && activeCompressBtn)
+        ? activeCompressBtn.dataset.fmt
+        : (engine.exportFormat || (activeConvertBtn ? activeConvertBtn.dataset.fmt : 'image/jpeg'));
+      const q = (currentTool === 'convert')
+        ? (parseInt(document.getElementById('convertQualitySlider').value) / 100)
+        : (engine.exportQuality || 0.92);
+
+      engine.exportBlob(fmt, q).then(b => {
+        sizeText.textContent = SmartCompressor.formatBytes(b.size);
+        const estSizeBadge = document.getElementById('convertEstSize');
+        if (estSizeBadge) estSizeBadge.textContent = SmartCompressor.formatBytes(b.size);
+      }).catch(() => {});
+    }
+  }
+
+  function syncFormatPillsToMime(mime) {
+    if (!mime) return;
+    engine.exportFormat = mime;
+
+    // Sync convert format pills
+    const convertFmtBtns = document.querySelectorAll('#convertFormatGroup .pill-option-btn');
+    convertFmtBtns.forEach(b => {
+      b.classList.toggle('active', b.dataset.fmt === mime);
     });
+    if (!Array.from(convertFmtBtns).some(b => b.classList.contains('active'))) {
+      const def = document.querySelector('#convertFormatGroup [data-fmt="image/jpeg"]');
+      if (def) def.classList.add('active');
+    }
+
+    // Sync compress format pills (JPEG or WEBP)
+    const compPills = document.querySelectorAll('#compressFormatGroup .pill-option-btn');
+    if (mime === 'image/webp') {
+      compPills.forEach(b => b.classList.toggle('active', b.dataset.fmt === 'image/webp'));
+    } else {
+      compPills.forEach(b => b.classList.toggle('active', b.dataset.fmt === 'image/jpeg'));
+    }
+
+    const isLossy = (mime === 'image/jpeg' || mime === 'image/webp' || mime === 'image/avif');
+    const convertQualityGroup = document.getElementById('convertQualityGroup');
+    if (convertQualityGroup) convertQualityGroup.style.display = isLossy ? 'flex' : 'none';
+  }
+
+  function syncConvertUI(fmt, quality) {
+    if (!fmt) return;
+    const convertFmtBtns = document.querySelectorAll('#convertFormatGroup .pill-option-btn');
+    convertFmtBtns.forEach(b => {
+      b.classList.toggle('active', b.dataset.fmt === fmt);
+    });
+
+    const compPills = document.querySelectorAll('#compressFormatGroup .pill-option-btn');
+    compPills.forEach(b => {
+      b.classList.toggle('active', b.dataset.fmt === fmt);
+    });
+
+    const isLossy = (fmt === 'image/jpeg' || fmt === 'image/webp' || fmt === 'image/avif');
+    const convertQualityGroup = document.getElementById('convertQualityGroup');
+    if (convertQualityGroup) convertQualityGroup.style.display = isLossy ? 'flex' : 'none';
+
+    if (quality !== undefined && quality !== null) {
+      const qVal = Math.round(quality * 100);
+      const convertQualitySlider = document.getElementById('convertQualitySlider');
+      const convertQualityBadge = document.getElementById('convertQualityBadge');
+      if (convertQualitySlider) convertQualitySlider.value = qVal;
+      if (convertQualityBadge) convertQualityBadge.textContent = `${qVal}%`;
+    }
   }
 
   function updateUndoRedoUI() {
@@ -141,11 +215,14 @@ document.addEventListener('DOMContentLoaded', () => {
       canvasWrapper.style.display = 'inline-flex';
       resetImgBtn.style.display = 'inline-flex';
 
+      syncFormatPillsToMime(meta.type);
+
       // Save initial undo snapshot
       history.pushUndoState(engine.getBaseCanvas(), `Loaded ${meta.name}`);
       history.logAction('Load Image', `Opened ${meta.name} (${meta.width}×${meta.height} px, ${SmartCompressor.calculateMegapixels(meta.width, meta.height)} MP)`);
 
       syncCanvasDisplay();
+      if (typeof updateCompressTargetStatus === 'function') updateCompressTargetStatus();
       zoomFit();
       refreshColorPalette();
       showToast(`Loaded ${meta.name} successfully!`);
@@ -225,13 +302,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const img = new Image();
     img.onload = () => {
-      engine.loadFromImageElement(img, 'luminary-landscape-sample');
+      engine.loadFromImageElement(img, 'luminary-landscape-sample', 'image/jpeg');
       dropZone.style.display = 'none';
       canvasWrapper.style.display = 'inline-flex';
       resetImgBtn.style.display = 'inline-flex';
+      syncFormatPillsToMime('image/jpeg');
       history.pushUndoState(engine.getBaseCanvas(), 'Sample Landscape (2.4 MP)');
       history.logAction('Load Sample', 'Generated Landscape Sample (1920×1280, 2.45 MP)');
       syncCanvasDisplay();
+      if (typeof updateCompressTargetStatus === 'function') updateCompressTargetStatus();
       zoomFit();
       refreshColorPalette();
       showToast('Loaded 2.4 MP Landscape Sample!');
@@ -285,13 +364,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const img = new Image();
     img.onload = () => {
-      engine.loadFromImageElement(img, 'luminary-portrait-9-16');
+      engine.loadFromImageElement(img, 'luminary-portrait-9-16', 'image/jpeg');
       dropZone.style.display = 'none';
       canvasWrapper.style.display = 'inline-flex';
       resetImgBtn.style.display = 'inline-flex';
+      syncFormatPillsToMime('image/jpeg');
       history.pushUndoState(engine.getBaseCanvas(), 'Sample 9:16 Portrait');
       history.logAction('Load Sample', 'Generated 9:16 Portrait Sample (1080×1920, 2.07 MP)');
       syncCanvasDisplay();
+      if (typeof updateCompressTargetStatus === 'function') updateCompressTargetStatus();
       zoomFit();
       refreshColorPalette();
       showToast('Loaded 9:16 Portrait Sample!');
@@ -331,13 +412,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const img = new Image();
     img.onload = () => {
-      engine.loadFromImageElement(img, 'luminary-transparent-logo');
+      engine.loadFromImageElement(img, 'luminary-transparent-logo', 'image/png');
       dropZone.style.display = 'none';
       canvasWrapper.style.display = 'inline-flex';
       resetImgBtn.style.display = 'inline-flex';
+      syncFormatPillsToMime('image/png');
       history.pushUndoState(engine.getBaseCanvas(), 'Sample Transparent Logo');
       history.logAction('Load Sample', 'Generated Transparent Logo Sample (800×800 px)');
       syncCanvasDisplay();
+      if (typeof updateCompressTargetStatus === 'function') updateCompressTargetStatus();
       zoomFit();
       refreshColorPalette();
       showToast('Loaded Transparent Logo Sample!');
@@ -425,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('resizeHeightInput').value = c.height;
     } else if (tool === 'compress') {
       updateCalculatedMP();
+      if (typeof updateCompressTargetStatus === 'function') updateCompressTargetStatus();
     }
   }
 
@@ -455,32 +539,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
       case 'compress': {
         const activeMode = document.querySelector('#compressModeGroup .pill-option-btn.active').dataset.mode;
-        const fmt = document.querySelector('#compressFormatGroup .pill-option-btn.active').dataset.fmt;
+        const fmtBtn = document.querySelector('#compressFormatGroup .pill-option-btn.active');
+        const fmt = fmtBtn ? fmtBtn.dataset.fmt : 'image/jpeg';
 
         if (activeMode === 'targetKB') {
           const targetKB = parseInt(document.getElementById('targetKBInput').value) || 200;
           showToast(`Optimizing image to ≤ ${targetKB} KB...`);
           SmartCompressor.compressToTargetKB(engine.getBaseCanvas(), targetKB, fmt, (pct, curKB) => {
-            // progress update
+            const compressResultBadge = document.getElementById('compressResultBadge');
+            if (compressResultBadge) compressResultBadge.textContent = `Optimizing: ${curKB} KB (${pct}%)`;
           }).then(res => {
             const img = new Image();
             img.onload = () => {
+              engine._applyingCompression = true;
               engine.setDimensions(res.width, res.height);
               engine.currentCtx.clearRect(0, 0, res.width, res.height);
               engine.currentCtx.drawImage(img, 0, 0);
               engine.commitChanges();
+              engine._applyingCompression = false;
+
+              // Store verified compressed blob and parameters
+              engine.lastCompressedBlob = res.blob;
+              engine.lastTargetKB = targetKB;
+              engine.exportFormat = fmt;
+              engine.exportQuality = res.quality;
+              engine.meta.size = res.blob.size;
+
+              syncConvertUI(fmt, res.quality);
               syncCanvasDisplay();
+              if (typeof updateCompressTargetStatus === 'function') updateCompressTargetStatus();
+
+              URL.revokeObjectURL(img.src);
+
               history.logAction('Compress to Target Size', `Reduced to ${res.sizeKB} KB (${res.width}×${res.height} px, Quality ${Math.round(res.quality*100)}%)`);
               showToast(`Achieved ${res.sizeKB} KB! (${res.width}×${res.height} px)`);
             };
             img.src = URL.createObjectURL(res.blob);
+          }).catch(err => {
+            showToast('Compression error: ' + (err.message || 'unknown error'));
           });
         } else {
           // Target Megapixels
           const targetMP = parseFloat(document.getElementById('targetMPSlider').value);
           const res = engine.resizeToMegapixels(targetMP);
           engine.commitChanges();
-          syncCanvasDisplay();
+          engine.exportFormat = fmt;
+
+          // Re-estimate size after downscaling MP
+          engine.exportBlob(fmt, 0.90).then(b => {
+            engine.lastCompressedBlob = b;
+            engine.meta.size = b.size;
+            syncCanvasDisplay();
+            if (typeof updateCompressTargetStatus === 'function') updateCompressTargetStatus();
+          });
+
           history.logAction('Reduce Megapixels', `Downscaled to ${res.megapixels.toFixed(2)} MP (${res.width}×${res.height} px)`);
           showToast(`Resized to ${res.megapixels.toFixed(2)} Megapixels!`);
         }
@@ -600,6 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- TOOL 2: COMPRESS & MP ---
   const compressModeBtns = document.querySelectorAll('#compressModeGroup .pill-option-btn');
+  const compressFormatBtns = document.querySelectorAll('#compressFormatGroup .pill-option-btn');
   const compressTargetKBWrap = document.getElementById('compressTargetKBWrap');
   const compressTargetMPWrap = document.getElementById('compressTargetMPWrap');
   const targetKBPills = document.querySelectorAll('#targetKBPills .pill-option-btn');
@@ -608,6 +721,52 @@ document.addEventListener('DOMContentLoaded', () => {
   const targetMPSlider = document.getElementById('targetMPSlider');
   const targetMPBadge = document.getElementById('targetMPBadge');
   const calcDimsBadge = document.getElementById('calcDimsBadge');
+  const compressAndExportBtn = document.getElementById('compressAndExportBtn');
+
+  function updateCompressTargetStatus() {
+    const targetKB = parseInt(targetKBInput.value) || 200;
+    const activeFmtBtn = document.querySelector('#compressFormatGroup .pill-option-btn.active');
+    const fmt = activeFmtBtn ? activeFmtBtn.dataset.fmt : 'image/jpeg';
+    const fmtName = fmt === 'image/webp' ? 'WEBP' : 'JPEG';
+
+    const statusBadge = document.getElementById('compressStatusBadge');
+    if (statusBadge) {
+      statusBadge.textContent = `≤ ${targetKB} KB (${fmtName})`;
+    }
+
+    const quickBtnText = document.getElementById('compressAndExportText');
+    if (quickBtnText) {
+      quickBtnText.textContent = `Compress & Export (≤ ${targetKB} KB)`;
+    }
+
+    const resultBadge = document.getElementById('compressResultBadge');
+    if (resultBadge) {
+      if (engine.lastCompressedBlob && engine.lastTargetKB === targetKB && engine.exportFormat === fmt) {
+        const sz = SmartCompressor.formatBytes(engine.lastCompressedBlob.size);
+        resultBadge.textContent = `${sz} (Ready to Export)`;
+        resultBadge.style.background = 'rgba(52, 199, 89, 0.15)';
+        resultBadge.style.color = '#248a3d';
+      } else {
+        resultBadge.textContent = 'Not yet applied';
+        resultBadge.style.background = 'var(--surface-secondary)';
+        resultBadge.style.color = 'var(--text-primary)';
+      }
+    }
+  }
+
+  compressFormatBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      compressFormatBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      engine.exportFormat = btn.dataset.fmt;
+      // Invalidate last compressed blob if format changed
+      if (engine.lastCompressedBlob && engine.lastCompressedBlob.type !== btn.dataset.fmt) {
+        engine.lastCompressedBlob = null;
+      }
+      updateCompressTargetStatus();
+      updateHUD();
+    });
+  });
 
   compressModeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -627,6 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (kb !== 'custom') {
         targetKBInput.value = kb;
       }
+      updateCompressTargetStatus();
     });
   });
 
@@ -639,7 +799,38 @@ document.addEventListener('DOMContentLoaded', () => {
       const customPill = document.querySelector('#targetKBPills [data-kb="custom"]');
       if (customPill) customPill.classList.add('active');
     }
+    updateCompressTargetStatus();
   });
+
+  if (compressAndExportBtn) {
+    compressAndExportBtn.addEventListener('click', async () => {
+      if (!engine.getCanvas().width) {
+        showToast('Load an image first before compressing');
+        return;
+      }
+      const targetKB = parseInt(targetKBInput.value) || 200;
+      const activeFmtBtn = document.querySelector('#compressFormatGroup .pill-option-btn.active');
+      const fmt = activeFmtBtn ? activeFmtBtn.dataset.fmt : 'image/jpeg';
+
+      showToast(`Compressing to ≤ ${targetKB} KB and exporting...`);
+      try {
+        const res = await SmartCompressor.compressToTargetKB(engine.getBaseCanvas(), targetKB, fmt);
+        engine.lastCompressedBlob = res.blob;
+        engine.lastTargetKB = targetKB;
+        engine.exportFormat = fmt;
+        engine.exportQuality = res.quality;
+        engine.meta.size = res.blob.size;
+
+        syncConvertUI(fmt, res.quality);
+        syncCanvasDisplay();
+        updateCompressTargetStatus();
+
+        downloadBlob(res.blob, fmt);
+      } catch (err) {
+        showToast('Compression error: ' + err.message);
+      }
+    });
+  }
 
   targetMPPills.forEach(pill => {
     pill.addEventListener('click', () => {
@@ -1533,11 +1724,88 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- DOWNLOAD EXPORT ---
   topDownloadBtn.addEventListener('click', () => {
-    const activeFmtBtn = document.querySelector('#convertFormatGroup .pill-option-btn.active');
-    const fmt = activeFmtBtn ? activeFmtBtn.dataset.fmt : 'image/png';
-    const q = parseInt(document.getElementById('convertQualitySlider').value) / 100;
-    triggerDownload(fmt, q);
+    exportCurrentImage();
   });
+
+  async function exportCurrentImage() {
+    if (!engine.getCanvas().width) {
+      showToast('Load an image first before exporting');
+      return;
+    }
+
+    // 1. If currently in Compress tool with targetKB mode:
+    if (currentTool === 'compress') {
+      const activeMode = document.querySelector('#compressModeGroup .pill-option-btn.active')?.dataset.mode;
+      if (activeMode === 'targetKB') {
+        const targetKB = parseInt(document.getElementById('targetKBInput').value) || 200;
+        const fmtBtn = document.querySelector('#compressFormatGroup .pill-option-btn.active');
+        const fmt = fmtBtn ? fmtBtn.dataset.fmt : 'image/jpeg';
+
+        // If we already have a verified compressed blob matching this target and format, download directly!
+        if (engine.lastCompressedBlob && engine.lastTargetKB === targetKB && engine.exportFormat === fmt) {
+          downloadBlob(engine.lastCompressedBlob, fmt);
+          return;
+        }
+
+        // Otherwise optimize on-the-fly to guarantee the target size
+        showToast(`Optimizing image to ≤ ${targetKB} KB for export...`);
+        try {
+          const res = await SmartCompressor.compressToTargetKB(engine.getBaseCanvas(), targetKB, fmt);
+          engine.lastCompressedBlob = res.blob;
+          engine.lastTargetKB = targetKB;
+          engine.exportFormat = fmt;
+          engine.exportQuality = res.quality;
+          engine.meta.size = res.blob.size;
+
+          syncConvertUI(fmt, res.quality);
+          syncCanvasDisplay();
+          updateCompressTargetStatus();
+
+          downloadBlob(res.blob, fmt);
+          return;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    // 2. If a verified compressed blob exists (e.g. user clicked Apply in Compress tool and then clicked Export Image):
+    if (engine.lastCompressedBlob) {
+      downloadBlob(engine.lastCompressedBlob, engine.exportFormat || 'image/jpeg');
+      return;
+    }
+
+    // 3. If on Convert Format tab:
+    if (currentTool === 'convert') {
+      const activeFmtBtn = document.querySelector('#convertFormatGroup .pill-option-btn.active');
+      const fmt = activeFmtBtn ? activeFmtBtn.dataset.fmt : (engine.exportFormat || 'image/jpeg');
+      const q = parseInt(document.getElementById('convertQualitySlider').value) / 100;
+      triggerDownload(fmt, q);
+      return;
+    }
+
+    // 4. Default export using engine's current format and quality
+    const format = engine.exportFormat || (engine.meta.type && engine.meta.type.startsWith('image/') ? engine.meta.type : 'image/jpeg');
+    const quality = engine.exportQuality || 0.92;
+    triggerDownload(format, quality);
+  }
+
+  function downloadBlob(blob, format) {
+    const ext = batch.getExtensionForMime(format || blob.type || 'image/jpeg');
+    const filename = `${engine.meta.name || 'luminary-export'}.${ext}`;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    history.logAction('Export Image', `Exported ${filename} (${SmartCompressor.formatBytes(blob.size)})`);
+    showToast(`Exported ${filename} (${SmartCompressor.formatBytes(blob.size)}) successfully!`);
+  }
 
   function triggerDownload(format, quality = 0.92) {
     if (!engine.getCanvas().width) {
@@ -1546,20 +1814,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     engine.exportBlob(format, quality).then(blob => {
-      const ext = batch.getExtensionForMime(format);
-      const filename = `${engine.meta.name || 'luminary-export'}.${ext}`;
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      history.logAction('Export Image', `Exported ${filename} (${SmartCompressor.formatBytes(blob.size)})`);
-      showToast(`Exported ${filename} successfully!`);
+      downloadBlob(blob, format);
+    }).catch(err => {
+      showToast('Export error: ' + err.message);
     });
   }
 

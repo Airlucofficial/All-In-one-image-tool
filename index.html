@@ -409,6 +409,22 @@
               <button class="pill-option-btn" data-fmt="image/webp">WEBP (Modern)</button>
             </div>
           </div>
+
+          <div class="control-group" id="compressStatusGroup" style="margin-top: 14px; background: rgba(0,0,0,0.02); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border-subtle);">
+            <div class="control-label-row">
+              <span>Target Budget</span>
+              <span class="control-val-badge" id="compressStatusBadge">≤ 200 KB</span>
+            </div>
+            <div class="control-label-row" style="margin-top: 6px;">
+              <span>Achieved Size</span>
+              <span class="control-val-badge" id="compressResultBadge" style="background: var(--surface-secondary); color: var(--text-primary);">Not yet applied</span>
+            </div>
+          </div>
+
+          <button class="btn btn-emerald" id="compressAndExportBtn" style="margin-top: 12px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span id="compressAndExportText">Compress & Export (≤ 200 KB)</span>
+          </button>
         </div>
 
         <!-- 3. TOOL: ASPECT RATIO & RESIZE -->

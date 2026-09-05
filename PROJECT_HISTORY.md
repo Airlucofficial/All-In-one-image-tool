@@ -104,7 +104,14 @@ The **All-in-One Image Tool** (Luminary Image Studio) is a unified, client-side,
   - **Crop Box Corner Resizing & Clamping**: Implemented 4-corner interactive resizing (`crop-handle-nw`, `ne`, `sw`, `se`) and strict container bounding clamp to prevent the crop box from overflowing the canvas bounds.
   - **Aspect Ratio Custom Dimensions & Padding Modes**: Connected live resize preview when typing custom width/height; added `pad-transparent` and `pad-black` aspect fitting options to the UI.
   - **Batch Filename De-duplication**: Added collision protection in `BatchProcessor` to prevent identical filenames from overwriting each other inside the generated ZIP archive.
-  - **Interactive UX Polish**: Added instant live preview to magic color eraser tolerance and feather sliders; enabled backdrop and Escape key dismissal for the history modal.
+- **[2026-09-05 15:50:00] COMPRESSION TARGET SIZE & EXPORT PIPELINE FIX**:
+  - **Export Pipeline Target Preservation**: Fixed `#topDownloadBtn` and `exportCurrentImage` to preserve the verified compressed blob generated during target size compression instead of defaulting to uncompressed PNG or 92% JPEG.
+  - **Compressed Blob & State Caching**: Extended `CanvasEngine` to track `lastCompressedBlob`, `lastTargetKB`, `exportFormat`, and `exportQuality`, ensuring that `exportBlob()` preserves compressed file size byte-for-byte upon export.
+  - **HUD / Status Bar Accurate Size Display**: Fixed `updateHUD()` so it displays the verified compressed size (`engine.lastCompressedBlob.size`) rather than re-encoding at JPEG 0.92 and falsely displaying 1.5 MB.
+  - **Interactive Compression Format Selector**: Added event listeners for `#compressFormatGroup` (JPEG vs WEBP) and integrated automatic UI synchronization between loaded image MIME types, the Convert Format panel, and Compress panel.
+  - **Compress Panel Live Status & One-Click Action**: Added live target budget and achieved size badges to `#sec-compress`, plus a "⚡ Compress & Export" button for single-click compression and immediate download.
+  - **Transparent JPEG Artifact Fix**: Added white background fill when exporting or compressing transparent images to JPEG, preventing black background rendering.
+  - **Automated Verification**: Expanded test suite `tests/test-image-tool.js` with Suite 8 covering CanvasEngine export caching, target size budget preservation, and end-to-end 2MB -> 500KB simulation (**19/19 tests passing**).
 
 ---
 
@@ -113,6 +120,6 @@ The **All-in-One Image Tool** (Luminary Image Studio) is a unified, client-side,
 | Timestamp | Tool | Description |
 | :--- | :--- | :--- |
 | 2026-09-03 21:38:00 | **System Audit** | Successfully synchronized source of truth file with local server auto-save API |
+| 2026-09-03 21:38:30 | **Automated Test** | Verified server auto-save integration |
+| 2026-09-05 15:50:00 | **Bug Fix** | Fixed target size compression and export pipeline to strictly adhere to target KB budget |
 
-
-| 21:38:30 | **Automated Test** | Verified server auto-save integration |
