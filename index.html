@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luminary Image Studio — All-In-One Professional Image Suite</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230071e3'><circle cx='12' cy='12' r='10'/></svg>">
+</head>
+<body>
+  <!-- Ambient Glassmorphism Glow Orbs -->
+  <div class="ambient-glow ambient-glow-1"></div>
+  <div class="ambient-glow ambient-glow-2"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      </div>
+      <div class="brand-title">Luminary Studio</div>
+      <span class="brand-badge">All-in-One Pro</span>
+    </div>
+
+    <!-- Center Session & Auto-save Status -->
+    <div class="nav-center">
+      <div class="history-indicator" id="historyIndicatorBtn" title="View Project History & Auto-Save Log">
+        <div class="pulse-dot"></div>
+        <span id="historyStatusText">Auto-Save: Active</span>
+      </div>
+    </div>
+
+    <!-- Right Header Actions -->
+    <div class="nav-actions">
+      <button class="btn btn-glass btn-icon-only" id="undoBtn" title="Undo (Ctrl+Z)" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+        </svg>
+      </button>
+      <button class="btn btn-glass btn-icon-only" id="redoBtn" title="Redo (Ctrl+Y)" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
+        </svg>
+      </button>
+      <button class="btn btn-glass" id="splitViewBtn" title="Compare Before / After">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="18" rx="2"/><path d="M12 3v18"/>
+        </svg>
+        <span>Compare</span>
+      </button>
+      <button class="btn btn-glass" id="resetImgBtn" title="Reset Image to Original" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+        </svg>
+        <span>Reset</span>
+      </button>
+      <button class="btn btn-primary" id="topDownloadBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>Export Image</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- App Shell -->
+  <main class="app-container">
+    <!-- Left Sidebar: Tool Selector -->
+    <aside class="tools-sidebar">
+      <div class="sidebar-category-label">Essential Tools</div>
+
+      <button class="tool-tab-btn active" data-tool="convert">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+        </div>
+        <span>Convert Format</span>
+        <span class="tool-badge">PNG/JPG</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="compress">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+            <line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </div>
+        <span>Compress & Size</span>
+        <span class="tool-badge">KB / MP</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="aspect">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
+          </svg>
+        </div>
+        <span>Aspect & Resize</span>
+        <span class="tool-badge">16:9 / 9:16</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="crop">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>
+          </svg>
+        </div>
+        <span>Crop & Rotate</span>
+      </button>
+
+      <div class="sidebar-category-label" style="margin-top: 10px;">Creative & Privacy</div>
+
+      <button class="tool-tab-btn" data-tool="transparency">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20Z"/>
+          </svg>
+        </div>
+        <span>Transparency</span>
+        <span class="tool-badge">Magic</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="watermark">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <span>Logo & Watermark</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="blur">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l4.24 4.24"/><path d="M14.83 9.17l4.24-4.24"/><path d="M14.83 14.83l4.24 4.24"/><path d="M4.93 19.07l4.24-4.24"/>
+          </svg>
+        </div>
+        <span>Blur & Censor</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="adjust">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </div>
+        <span>Filters & Color</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="border">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="5" ry="5"/>
+          </svg>
+        </div>
+        <span>Border & Squircle</span>
+      </button>
+
+      <div class="sidebar-category-label" style="margin-top: 10px;">Pro Utilities</div>
+
+      <button class="tool-tab-btn" data-tool="palette">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+          </svg>
+        </div>
+        <span>Color Palette</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="batch">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/><path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"/><polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <span>Batch Processor</span>
+        <span class="tool-badge">ZIP</span>
+      </button>
+
+      <button class="tool-tab-btn" data-tool="history">
+        <div class="tool-tab-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <span>History & Logs</span>
+      </button>
+    </aside>
+
+    <!-- Center Stage: Viewport -->
+    <section class="stage-area">
+      <!-- Stage Toolbar -->
+      <div class="stage-toolbar">
+        <div class="stage-toolbar-left">
+          <div class="pill-info" id="imgDimensionsPill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <span id="dimensionsText">No image loaded</span>
+          </div>
+          <div class="pill-info" id="imgSizePill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+            <span id="sizeText">0 KB</span>
+          </div>
+          <div class="pill-info" id="imgMpPill">
+            <span class="pill-highlight" id="mpText">0.0 MP</span>
+          </div>
+        </div>
+
+        <div class="stage-toolbar-right">
+          <button class="btn btn-glass btn-icon-only" id="zoomOutBtn" title="Zoom Out">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <span class="pill-info" id="zoomLevelText" style="min-width: 54px; justify-content: center;">100%</span>
+          <button class="btn btn-glass btn-icon-only" id="zoomInBtn" title="Zoom In">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="btn btn-glass btn-icon-only" id="zoomFitBtn" title="Fit to Screen">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+          </button>
+          <label class="btn btn-glass" title="Load New Image">
+            <input type="file" id="fileInput" accept="image/*" style="display:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Open</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Main Canvas Viewport & Checkerboard -->
+      <div class="canvas-viewport" id="canvasViewport">
+        <!-- Empty State Drag & Drop -->
+        <div class="empty-drop-zone" id="dropZone">
+          <div class="drop-card">
+            <div class="drop-icon-wrapper">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+            <h2 class="drop-title">Drop your image here</h2>
+            <p class="drop-desc">Supports PNG, JPG, WEBP, AVIF, GIF, SVG, BMP. 100% private, executed locally in your browser.</p>
+            <label class="btn btn-primary">
+              <input type="file" id="dropFileInput" accept="image/*" style="display:none;">
+              Browse Image
+            </label>
+            <div class="drop-quick-samples">
+              <span style="font-size: 0.8rem; color: var(--text-muted);">or try sample:</span>
+              <button class="sample-btn" id="samplePhotoBtn">Landscape (2.4 MP)</button>
+              <button class="sample-btn" id="samplePortraitBtn">Portrait (16:9)</button>
+              <button class="sample-btn" id="sampleLogoBtn">Transparent Logo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-wrapper checkerboard" id="canvasWrapper" style="display:none;">
+          <canvas id="mainCanvas"></canvas>
+
+          <!-- Interactive Crop Overlay -->
+          <div class="crop-overlay" id="cropOverlay">
+            <div class="crop-box" id="cropBox">
+              <div class="crop-grid">
+                <div class="crop-grid-line"></div><div class="crop-grid-line"></div><div></div>
+                <div class="crop-grid-line"></div><div class="crop-grid-line"></div><div></div>
+                <div></div><div></div><div></div>
+              </div>
+              <div class="crop-handle crop-handle-nw"></div>
+              <div class="crop-handle crop-handle-ne"></div>
+              <div class="crop-handle crop-handle-sw"></div>
+              <div class="crop-handle crop-handle-se"></div>
+            </div>
+          </div>
+
+          <!-- Split Before / After Viewer -->
+          <div class="split-viewer-container" id="splitViewer">
+            <canvas id="splitCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+            <div class="split-line" id="splitLine" style="left:50%;">
+              <div class="split-handle">⟷</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Inspector Panel: Dynamic Controls -->
+    <aside class="inspector-panel" id="inspectorPanel">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <div class="panel-title" id="panelTitle">Convert Format</div>
+          <div class="panel-subtitle" id="panelSubtitle">Change file type and quality</div>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        <!-- 1. TOOL: CONVERT FORMAT -->
+        <div class="tool-section active" id="sec-convert">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Target Format</span>
+            </div>
+            <div class="pill-grid pill-grid-3" id="convertFormatGroup">
+              <button class="pill-option-btn active" data-fmt="image/png">PNG</button>
+              <button class="pill-option-btn" data-fmt="image/jpeg">JPG</button>
+              <button class="pill-option-btn" data-fmt="image/webp">WEBP</button>
+              <button class="pill-option-btn" data-fmt="image/avif">AVIF</button>
+              <button class="pill-option-btn" data-fmt="image/bmp">BMP</button>
+              <button class="pill-option-btn" data-fmt="image/x-icon">ICO</button>
+            </div>
+          </div>
+
+          <div class="control-group" id="convertQualityGroup" style="display:none;">
+            <div class="control-label-row">
+              <span>Quality</span>
+              <span class="control-val-badge" id="convertQualityBadge">92%</span>
+            </div>
+            <input type="range" class="apple-slider" id="convertQualitySlider" min="5" max="100" value="92">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Estimated Size</span>
+              <span class="control-val-badge" id="convertEstSize">Calculating...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. TOOL: COMPRESS & TARGET SIZE -->
+        <div class="tool-section" id="sec-compress">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Compress Mode</span>
+            </div>
+            <div class="pill-grid pill-grid-2" id="compressModeGroup">
+              <button class="pill-option-btn active" data-mode="targetKB">Target File Size</button>
+              <button class="pill-option-btn" data-mode="targetMP">Target Megapixels</button>
+            </div>
+          </div>
+
+          <!-- Target File Size (KB/MB) Sub-Panel -->
+          <div id="compressTargetKBWrap">
+            <div class="control-group">
+              <div class="control-label-row">
+                <span>Preset Target Size</span>
+              </div>
+              <div class="pill-grid pill-grid-3" id="targetKBPills">
+                <button class="pill-option-btn" data-kb="100">100 KB</button>
+                <button class="pill-option-btn active" data-kb="200">200 KB</button>
+                <button class="pill-option-btn" data-kb="500">500 KB</button>
+                <button class="pill-option-btn" data-kb="1024">1 MB</button>
+                <button class="pill-option-btn" data-kb="2048">2 MB</button>
+                <button class="pill-option-btn" data-kb="custom">Custom</button>
+              </div>
+            </div>
+
+            <div class="control-group" style="margin-top: 10px;">
+              <div class="control-label-row">
+                <span>Exact Target (KB)</span>
+              </div>
+              <div class="input-row">
+                <input type="number" class="apple-input" id="targetKBInput" value="200" min="5" max="100000">
+                <span class="input-suffix">KB</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Target Megapixels (MP) Sub-Panel -->
+          <div id="compressTargetMPWrap" style="display:none;">
+            <div class="control-group">
+              <div class="control-label-row">
+                <span>Preset Megapixels</span>
+              </div>
+              <div class="pill-grid pill-grid-3" id="targetMPPills">
+                <button class="pill-option-btn" data-mp="0.5">0.5 MP</button>
+                <button class="pill-option-btn" data-mp="1.0">1.0 MP</button>
+                <button class="pill-option-btn active" data-mp="2.0">2.0 MP</button>
+                <button class="pill-option-btn" data-mp="4.0">4.0 MP</button>
+                <button class="pill-option-btn" data-mp="8.0">8.0 MP</button>
+                <button class="pill-option-btn" data-mp="custom">Custom</button>
+              </div>
+            </div>
+
+            <div class="control-group" style="margin-top: 10px;">
+              <div class="control-label-row">
+                <span>Target Megapixels</span>
+                <span class="control-val-badge" id="targetMPBadge">2.0 MP</span>
+              </div>
+              <input type="range" class="apple-slider" id="targetMPSlider" min="0.1" max="16.0" step="0.1" value="2.0">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label-row">
+                <span>Calculated Dimensions</span>
+                <span class="control-val-badge" id="calcDimsBadge">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Compression Format</span>
+            </div>
+            <div class="pill-grid pill-grid-2" id="compressFormatGroup">
+              <button class="pill-option-btn active" data-fmt="image/jpeg">JPEG (Universal)</button>
+              <button class="pill-option-btn" data-fmt="image/webp">WEBP (Modern)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. TOOL: ASPECT RATIO & RESIZE -->
+        <div class="tool-section" id="sec-aspect">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Aspect Ratio Presets</span>
+            </div>
+            <div class="pill-grid pill-grid-3" id="aspectPresets">
+              <button class="pill-option-btn active" data-ratio="original">Original</button>
+              <button class="pill-option-btn" data-ratio="1:1">1:1 Square</button>
+              <button class="pill-option-btn" data-ratio="16:9">16:9 YouTube</button>
+              <button class="pill-option-btn" data-ratio="9:16">9:16 TikTok</button>
+              <button class="pill-option-btn" data-ratio="4:5">4:5 Insta</button>
+              <button class="pill-option-btn" data-ratio="4:3">4:3 Photo</button>
+              <button class="pill-option-btn" data-ratio="3:2">3:2 DSLR</button>
+              <button class="pill-option-btn" data-ratio="21:9">21:9 Ultra</button>
+              <button class="pill-option-btn" data-ratio="custom">Custom</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Fitting Mode</span>
+            </div>
+            <div class="pill-grid pill-grid-3" id="aspectFitModes">
+              <button class="pill-option-btn active" data-fit="pad-blur">Frosted Blur</button>
+              <button class="pill-option-btn" data-fit="crop">Smart Center Crop</button>
+              <button class="pill-option-btn" data-fit="pad-transparent">Transparent Pad</button>
+              <button class="pill-option-btn" data-fit="pad-white">White Pad</button>
+              <button class="pill-option-btn" data-fit="pad-black">Black Pad</button>
+              <button class="pill-option-btn" data-fit="stretch">Stretch</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Manual Dimensions (px)</span>
+            </div>
+            <div class="input-row">
+              <input type="number" class="apple-input" id="resizeWidthInput" placeholder="Width">
+              <span style="color:var(--text-muted);">×</span>
+              <input type="number" class="apple-input" id="resizeHeightInput" placeholder="Height">
+            </div>
+            <div class="switch-row" style="margin-top: 6px;">
+              <span class="switch-label">Lock Aspect Ratio</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="lockAspectCheckbox" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. TOOL: CROP & ROTATE -->
+        <div class="tool-section" id="sec-crop">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Rotate & Flip</span>
+            </div>
+            <div class="pill-grid pill-grid-4">
+              <button class="pill-option-btn" id="rotateCcwBtn" title="Rotate 90° CCW">↺ 90°</button>
+              <button class="pill-option-btn" id="rotateCwBtn" title="Rotate 90° CW">↻ 90°</button>
+              <button class="pill-option-btn" id="flipHBtn" title="Flip Horizontal">⇆ Flip H</button>
+              <button class="pill-option-btn" id="flipVBtn" title="Flip Vertical">⇅ Flip V</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Free Straighten Angle</span>
+              <span class="control-val-badge" id="straightenBadge">0°</span>
+            </div>
+            <input type="range" class="apple-slider" id="straightenSlider" min="-45" max="45" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Interactive Crop</span>
+            </div>
+            <button class="btn btn-glass" id="toggleCropModeBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+              <span>Enable Crop Box</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. TOOL: TRANSPARENCY & MAGIC ERASER -->
+        <div class="tool-section" id="sec-transparency">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Overall Opacity</span>
+              <span class="control-val-badge" id="opacityBadge">100%</span>
+            </div>
+            <input type="range" class="apple-slider" id="opacitySlider" min="0" max="100" value="100">
+          </div>
+
+          <hr style="border:none; border-top:1px solid var(--glass-border-subtle); margin: 6px 0;">
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Magic Color Remover</span>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary);">Click "Pick from Canvas" then click any color on your image to make it transparent.</p>
+            <div class="color-picker-row">
+              <input type="color" class="color-circle-input" id="magicColorInput" value="#ffffff">
+              <button class="btn btn-glass" id="pickCanvasColorBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 22 1-1h3l9-9"/><path d="M14 6l4 4"/><circle cx="17.5" cy="6.5" r="2.5"/></svg>
+                <span>Pick Color</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Color Tolerance</span>
+              <span class="control-val-badge" id="toleranceBadge">25%</span>
+            </div>
+            <input type="range" class="apple-slider" id="toleranceSlider" min="1" max="80" value="25">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Edge Feather / Smoothing</span>
+              <span class="control-val-badge" id="featherBadge">10%</span>
+            </div>
+            <input type="range" class="apple-slider" id="featherSlider" min="0" max="40" value="10">
+          </div>
+
+          <button class="btn btn-glass" id="applyEraseColorBtn">Erase Selected Color</button>
+        </div>
+
+        <!-- 6. TOOL: LOGO & WATERMARK -->
+        <div class="tool-section" id="sec-watermark">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Watermark Type</span>
+            </div>
+            <div class="pill-grid pill-grid-2" id="wmTypeGroup">
+              <button class="pill-option-btn active" data-wm="logo">Image Logo</button>
+              <button class="pill-option-btn" data-wm="text">Text Watermark</button>
+            </div>
+          </div>
+
+          <!-- Logo Upload Sub-Panel -->
+          <div id="wmLogoSubPanel">
+            <div class="control-group">
+              <label class="btn btn-glass" style="width:100%;">
+                <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/></svg>
+                <span>Upload Logo File</span>
+              </label>
+            </div>
+
+            <div class="control-group">
+              <div class="control-label-row">
+                <span>Logo Scale</span>
+                <span class="control-val-badge" id="logoScaleBadge">20%</span>
+              </div>
+              <input type="range" class="apple-slider" id="logoScaleSlider" min="5" max="60" value="20">
+            </div>
+          </div>
+
+          <!-- Text Watermark Sub-Panel -->
+          <div id="wmTextSubPanel" style="display:none;">
+            <div class="control-group">
+              <div class="control-label-row"><span>Watermark Text</span></div>
+              <input type="text" class="apple-input" id="wmTextInput" value="© Luminary Image Studio">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label-row">
+                <span>Font Size</span>
+                <span class="control-val-badge" id="wmFontSizeBadge">32px</span>
+              </div>
+              <input type="range" class="apple-slider" id="wmFontSizeSlider" min="12" max="120" value="32">
+            </div>
+
+            <div class="switch-row">
+              <span class="switch-label">Diagonal Repeating Pattern</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="wmRepeatCheckbox">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Common Placement & Opacity -->
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Anchor Position</span>
+            </div>
+            <div class="pill-grid pill-grid-3" id="wmAnchorGroup">
+              <button class="pill-option-btn" data-anchor="top-left">TL</button>
+              <button class="pill-option-btn" data-anchor="top-center">Top</button>
+              <button class="pill-option-btn" data-anchor="top-right">TR</button>
+              <button class="pill-option-btn" data-anchor="center-left">Left</button>
+              <button class="pill-option-btn" data-anchor="center">Center</button>
+              <button class="pill-option-btn" data-anchor="center-right">Right</button>
+              <button class="pill-option-btn" data-anchor="bottom-left">BL</button>
+              <button class="pill-option-btn" data-anchor="bottom-center">Bottom</button>
+              <button class="pill-option-btn active" data-anchor="bottom-right">BR</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Watermark Opacity</span>
+              <span class="control-val-badge" id="wmOpacityBadge">80%</span>
+            </div>
+            <input type="range" class="apple-slider" id="wmOpacitySlider" min="10" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- 7. TOOL: BLUR & PRIVACY CENSOR -->
+        <div class="tool-section" id="sec-blur">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Blur Style</span>
+            </div>
+            <div class="pill-grid pill-grid-3" id="blurStyleGroup">
+              <button class="pill-option-btn active" data-style="gaussian">Gaussian</button>
+              <button class="pill-option-btn" data-style="tiltshift">Tilt-Shift</button>
+              <button class="pill-option-btn" data-style="pixelate">Pixelate</button>
+            </div>
+          </div>
+
+          <div class="control-group" id="blurRadiusWrap">
+            <div class="control-label-row">
+              <span>Blur Radius</span>
+              <span class="control-val-badge" id="blurRadiusBadge">12px</span>
+            </div>
+            <input type="range" class="apple-slider" id="blurRadiusSlider" min="0" max="60" value="12">
+          </div>
+
+          <div class="control-group" id="pixelateWrap" style="display:none;">
+            <div class="control-label-row">
+              <span>Block Size</span>
+              <span class="control-val-badge" id="pixelateBadge">16px</span>
+            </div>
+            <input type="range" class="apple-slider" id="pixelateSlider" min="2" max="60" value="16">
+          </div>
+
+          <div class="control-group" id="tiltShiftWrap" style="display:none;">
+            <div class="control-label-row">
+              <span>Focus Band Center</span>
+              <span class="control-val-badge" id="tiltCenterBadge">50%</span>
+            </div>
+            <input type="range" class="apple-slider" id="tiltCenterSlider" min="10" max="90" value="50">
+          </div>
+        </div>
+
+        <!-- 8. TOOL: PRO FILTERS & COLOR ADJUSTMENTS -->
+        <div class="tool-section" id="sec-adjust">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Quick Preset</span>
+            </div>
+            <div class="pill-grid pill-grid-3" id="filterPresets">
+              <button class="pill-option-btn active" data-preset="none">Default</button>
+              <button class="pill-option-btn" data-preset="vivid">Vivid</button>
+              <button class="pill-option-btn" data-preset="noir">Noir</button>
+              <button class="pill-option-btn" data-preset="warm">Warm Glow</button>
+              <button class="pill-option-btn" data-preset="cool">Cool Studio</button>
+              <button class="pill-option-btn" data-preset="sepia">Sepia</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Brightness</span>
+              <span class="control-val-badge" id="adjBrightnessBadge">0</span>
+            </div>
+            <input type="range" class="apple-slider" id="adjBrightness" min="-100" max="100" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Contrast</span>
+              <span class="control-val-badge" id="adjContrastBadge">0</span>
+            </div>
+            <input type="range" class="apple-slider" id="adjContrast" min="-100" max="100" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Saturation</span>
+              <span class="control-val-badge" id="adjSaturationBadge">0</span>
+            </div>
+            <input type="range" class="apple-slider" id="adjSaturation" min="-100" max="100" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Exposure</span>
+              <span class="control-val-badge" id="adjExposureBadge">0</span>
+            </div>
+            <input type="range" class="apple-slider" id="adjExposure" min="-100" max="100" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Warmth</span>
+              <span class="control-val-badge" id="adjWarmthBadge">0</span>
+            </div>
+            <input type="range" class="apple-slider" id="adjWarmth" min="-100" max="100" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Sharpen / Clarity</span>
+              <span class="control-val-badge" id="adjSharpenBadge">0</span>
+            </div>
+            <input type="range" class="apple-slider" id="adjSharpen" min="0" max="100" value="0">
+          </div>
+        </div>
+
+        <!-- 9. TOOL: BORDER, SQUIRCLE & SHADOW -->
+        <div class="tool-section" id="sec-border">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Corner Radius</span>
+              <span class="control-val-badge" id="borderRadiusBadge">30px</span>
+            </div>
+            <input type="range" class="apple-slider" id="borderRadiusSlider" min="0" max="250" value="30">
+          </div>
+
+          <div class="switch-row">
+            <span class="switch-label">Apple Squircle Curvature</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="squircleCheckbox" checked>
+              <span class="slider-round"></span>
+            </label>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Border Width</span>
+              <span class="control-val-badge" id="borderWidthBadge">0px</span>
+            </div>
+            <input type="range" class="apple-slider" id="borderWidthSlider" min="0" max="40" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Border Color</span></div>
+            <div class="color-picker-row">
+              <input type="color" class="color-circle-input" id="borderColorInput" value="#ffffff">
+              <span style="font-size:0.8rem;color:var(--text-secondary);" id="borderHexCode">#FFFFFF</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Mockup Backdrop Padding</span>
+              <span class="control-val-badge" id="paddingBadge">0px</span>
+            </div>
+            <input type="range" class="apple-slider" id="paddingSlider" min="0" max="120" value="0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Floating Drop Shadow</span>
+              <span class="control-val-badge" id="shadowBadge">0px</span>
+            </div>
+            <input type="range" class="apple-slider" id="shadowSlider" min="0" max="60" value="0">
+          </div>
+        </div>
+
+        <!-- 10. TOOL: COLOR PALETTE -->
+        <div class="tool-section" id="sec-palette">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Dominant Colors</span>
+              <button class="sample-btn" id="refreshPaletteBtn">Refresh</button>
+            </div>
+            <div class="palette-container" id="paletteList">
+              <!-- Swatches populated dynamically -->
+            </div>
+          </div>
+
+          <div class="control-group" style="margin-top: 10px;">
+            <button class="btn btn-glass" id="eyedropperLoupeBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 22 1-1h3l9-9"/><path d="M14 6l4 4"/><circle cx="17.5" cy="6.5" r="2.5"/></svg>
+              <span>Eyedropper Loupe</span>
+            </button>
+            <div class="pill-info" id="eyedropperResultPill" style="margin-top:8px; display:none;">
+              <span id="eyedropperColorDot" style="width:14px;height:14px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,0.1);"></span>
+              <span id="eyedropperHexText">#000000</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 11. TOOL: BATCH PROCESSOR -->
+        <div class="tool-section" id="sec-batch">
+          <div class="control-group">
+            <label class="btn btn-glass" style="width:100%;">
+              <input type="file" id="batchFilesInput" accept="image/*" multiple style="display:none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/></svg>
+              <span>Add Images to Batch Queue</span>
+            </label>
+          </div>
+
+          <div class="batch-list" id="batchItemsList">
+            <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:20px 0;">No images in batch queue</div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Batch Output Format</span></div>
+            <div class="pill-grid pill-grid-3" id="batchFormatGroup">
+              <button class="pill-option-btn active" data-fmt="image/jpeg">JPG</button>
+              <button class="pill-option-btn" data-fmt="image/webp">WEBP</button>
+              <button class="pill-option-btn" data-fmt="image/png">PNG</button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="startBatchBtn">Process All Images</button>
+          <button class="btn btn-emerald" id="downloadBatchZipBtn" style="display:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+            <span>Download All as ZIP</span>
+          </button>
+        </div>
+
+        <!-- 12. TOOL: HISTORY & LOGS -->
+        <div class="tool-section" id="sec-history">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Session History</span>
+              <button class="sample-btn" id="exportHistoryMdBtn">Export Markdown</button>
+            </div>
+            <div class="history-timeline" id="sideHistoryTimeline">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspector Panel Footer Action -->
+      <div class="panel-footer">
+        <button class="btn btn-primary" id="applyToolBtn" style="width:100%;">
+          Apply to Image
+        </button>
+        <button class="btn btn-glass" id="revertToolBtn" style="width:100%;">
+          Discard Current Preview
+        </button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Project History Modal -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div style="font-weight:700;font-size:1.15rem;">Project History & Source of Truth</div>
+        <button class="btn btn-glass btn-icon-only" id="closeHistoryModalBtn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:#f8fafc;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:0.82rem;color:var(--text-secondary);border:1px solid var(--glass-border-subtle);">
+          ℹ️ Automatically recording every tool action, parameter, and change. Synced with <code>PROJECT_HISTORY.md</code> in workspace.
+        </div>
+        <div class="history-timeline" id="modalHistoryTimeline"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/vendor/jszip.min.js"></script>
+  <script src="js/canvas-engine.js"></script>
+  <script src="js/compressor.js"></script>
+  <script src="js/palette.js"></script>
+  <script src="js/batch.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
