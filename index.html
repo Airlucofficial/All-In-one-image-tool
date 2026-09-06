@@ -179,8 +179,8 @@
             <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/><path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"/><polyline points="10 9 9 9 8 9"/>
           </svg>
         </div>
-        <span>Batch Processor</span>
-        <span class="tool-badge">ZIP</span>
+        <span>Batch & Renamer</span>
+        <span class="tool-badge">Img / Vid</span>
       </button>
 
       <button class="tool-tab-btn" data-tool="history">
@@ -817,34 +817,277 @@
           </div>
         </div>
 
-        <!-- 11. TOOL: BATCH PROCESSOR -->
+        <!-- 11. TOOL: BATCH & MEDIA RENAMER -->
         <div class="tool-section" id="sec-batch">
-          <div class="control-group">
-            <label class="btn btn-glass" style="width:100%;">
-              <input type="file" id="batchFilesInput" accept="image/*" multiple style="display:none;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/></svg>
-              <span>Add Images to Batch Queue</span>
-            </label>
+          <!-- Two Sections Sub-navigation Tabs -->
+          <div class="media-section-tabs" id="batchSectionTabs">
+            <button class="media-section-tab active" id="tabBatchImages" data-sub="images">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Images</span>
+              <span class="badge-count" id="badgeBatchImgCount">0</span>
+            </button>
+            <button class="media-section-tab" id="tabBatchVideos" data-sub="videos">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              <span>Videos</span>
+              <span class="badge-count" id="badgeBatchVidCount">0</span>
+            </button>
           </div>
 
-          <div class="batch-list" id="batchItemsList">
-            <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:20px 0;">No images in batch queue</div>
-          </div>
+          <!-- ========================================== -->
+          <!-- SUB-SECTION 1: IMAGES                      -->
+          <!-- ========================================== -->
+          <div class="batch-sub-content" id="batchImagesSubSection">
+            <div class="control-group">
+              <div style="display:flex; gap:8px;">
+                <label class="btn btn-glass" style="flex:1;">
+                  <input type="file" id="batchFilesInput" accept="image/*" multiple style="display:none;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/></svg>
+                  <span>Add Images</span>
+                </label>
+                <button class="btn btn-glass" id="clearImgQueueBtn" title="Clear Image Queue" style="padding:0 12px;">Clear</button>
+              </div>
+            </div>
 
-          <div class="control-group">
-            <div class="control-label-row"><span>Batch Output Format</span></div>
-            <div class="pill-grid pill-grid-3" id="batchFormatGroup">
-              <button class="pill-option-btn active" data-fmt="image/jpeg">JPG</button>
-              <button class="pill-option-btn" data-fmt="image/webp">WEBP</button>
-              <button class="pill-option-btn" data-fmt="image/png">PNG</button>
+            <!-- Image Renaming Rules Card -->
+            <div class="rename-settings-card">
+              <div class="control-label-row">
+                <span style="font-weight:700;font-size:0.8rem;color:var(--text-main);">Image Renaming Rules</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);" id="imgRenamePreviewLabel">Live Preview Active</span>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="imgRenamePrefix">Prefix</label>
+                  <input type="text" id="imgRenamePrefix" placeholder="e.g. Photo_">
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="imgRenameSuffix">Suffix</label>
+                  <input type="text" id="imgRenameSuffix" placeholder="e.g. _HD">
+                </div>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="imgRenameStart">Start Number</label>
+                  <input type="number" id="imgRenameStart" value="1" min="0" step="1">
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="imgRenamePadding">Digits / Padding</label>
+                  <select id="imgRenamePadding">
+                    <option value="1">1, 2, 3...</option>
+                    <option value="2" selected>01, 02, 03...</option>
+                    <option value="3">001, 002, 003...</option>
+                    <option value="4">0001, 0002...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="imgRenameNumMode">Number Mode</label>
+                  <select id="imgRenameNumMode">
+                    <option value="append" selected>Append sequence (_01)</option>
+                    <option value="replace">Replace name with number</option>
+                    <option value="none">No sequence number</option>
+                  </select>
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="imgRenameCase">Letter Case</label>
+                  <select id="imgRenameCase">
+                    <option value="original" selected>Keep Original</option>
+                    <option value="lowercase">lowercase</option>
+                    <option value="uppercase">UPPERCASE</option>
+                    <option value="titlecase">Title Case</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="imgRenameFind">Find Text</label>
+                  <input type="text" id="imgRenameFind" placeholder="Text to find">
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="imgRenameReplace">Replace With</label>
+                  <input type="text" id="imgRenameReplace" placeholder="Replacement">
+                </div>
+              </div>
+            </div>
+
+            <!-- Image Output Format Options -->
+            <div class="control-group">
+              <div class="control-label-row">
+                <span>Output Format & Quality</span>
+                <span style="font-size:0.7rem;color:var(--accent-emerald);font-weight:600;">✨ Lossless by default</span>
+              </div>
+              <div class="pill-grid pill-grid-4" id="batchFormatGroup">
+                <button class="pill-option-btn active" data-fmt="original">Original</button>
+                <button class="pill-option-btn" data-fmt="image/jpeg">JPG</button>
+                <button class="pill-option-btn" data-fmt="image/webp">WEBP</button>
+                <button class="pill-option-btn" data-fmt="image/png">PNG</button>
+              </div>
+            </div>
+
+            <!-- Image Queue List -->
+            <div class="control-label-row" style="margin-top:10px;">
+              <span>Images Queue (<span id="imgQueueCountText">0</span>)</span>
+            </div>
+            <div class="batch-list" id="batchItemsList">
+              <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:24px 0;">No images in queue. Click "Add Images" above.</div>
+            </div>
+
+            <!-- Export Actions: Folder vs ZIP -->
+            <div class="control-group" style="margin-top:14px;">
+              <div class="control-label-row">
+                <span style="font-weight:700;">Download Options</span>
+              </div>
+              <div class="export-actions-grid">
+                <button class="btn-folder-download" id="downloadImgFolderBtn" title="Directly write files into a selected folder on your disk">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  <span>Download Folder</span>
+                </button>
+                <button class="btn-zip-download" id="downloadImgZipBtn" title="Package all renamed images into a single ZIP archive">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Download ZIP</span>
+                </button>
+              </div>
+              <div class="export-explainer-hint">
+                📁 <strong>Folder</strong>: Saves directly into your computer directory (no extraction needed).<br>
+                📦 <strong>ZIP</strong>: Downloads a standard compressed archive.
+              </div>
             </div>
           </div>
 
-          <button class="btn btn-primary" id="startBatchBtn">Process All Images</button>
-          <button class="btn btn-emerald" id="downloadBatchZipBtn" style="display:none;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
-            <span>Download All as ZIP</span>
-          </button>
+          <!-- ========================================== -->
+          <!-- SUB-SECTION 2: VIDEOS                      -->
+          <!-- ========================================== -->
+          <div class="batch-sub-content" id="batchVideosSubSection" style="display:none;">
+            <!-- Quality Guarantee Box -->
+            <div class="quality-guarantee-box">
+              <div class="quality-guarantee-icon">💎</div>
+              <div class="quality-guarantee-text">
+                <strong>100% Lossless Video Quality</strong>
+                <p>Original video & audio bitstreams are preserved bit-for-bit with zero re-encoding. Perfect original quality guaranteed.</p>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <div style="display:flex; gap:8px;">
+                <label class="btn btn-glass" style="flex:1;">
+                  <input type="file" id="batchVideosInput" accept="video/*,.mp4,.mov,.webm,.mkv,.avi,.m4v,.flv,.wmv,.3gp" multiple style="display:none;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                  <span>Add Videos</span>
+                </label>
+                <button class="btn btn-glass" id="clearVidQueueBtn" title="Clear Video Queue" style="padding:0 12px;">Clear</button>
+              </div>
+            </div>
+
+            <!-- Video Renaming Rules Card -->
+            <div class="rename-settings-card">
+              <div class="control-label-row">
+                <span style="font-weight:700;font-size:0.8rem;color:var(--text-main);">Video Renaming Rules</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);" id="vidRenamePreviewLabel">Live Preview Active</span>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="vidRenamePrefix">Prefix</label>
+                  <input type="text" id="vidRenamePrefix" placeholder="e.g. Video_">
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="vidRenameSuffix">Suffix</label>
+                  <input type="text" id="vidRenameSuffix" placeholder="e.g. _4K">
+                </div>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="vidRenameStart">Start Number</label>
+                  <input type="number" id="vidRenameStart" value="1" min="0" step="1">
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="vidRenamePadding">Digits / Padding</label>
+                  <select id="vidRenamePadding">
+                    <option value="1">1, 2, 3...</option>
+                    <option value="2" selected>01, 02, 03...</option>
+                    <option value="3">001, 002, 003...</option>
+                    <option value="4">0001, 0002...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="vidRenameNumMode">Number Mode</label>
+                  <select id="vidRenameNumMode">
+                    <option value="append" selected>Append sequence (_01)</option>
+                    <option value="replace">Replace name with number</option>
+                    <option value="none">No sequence number</option>
+                  </select>
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="vidRenameCase">Letter Case</label>
+                  <select id="vidRenameCase">
+                    <option value="original" selected>Keep Original</option>
+                    <option value="lowercase">lowercase</option>
+                    <option value="uppercase">UPPERCASE</option>
+                    <option value="titlecase">Title Case</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="rename-field-row">
+                <div class="rename-input-wrap">
+                  <label for="vidRenameFind">Find Text</label>
+                  <input type="text" id="vidRenameFind" placeholder="Text to find">
+                </div>
+                <div class="rename-input-wrap">
+                  <label for="vidRenameReplace">Replace With</label>
+                  <input type="text" id="vidRenameReplace" placeholder="Replacement">
+                </div>
+              </div>
+            </div>
+
+            <!-- Video Queue List -->
+            <div class="control-label-row" style="margin-top:10px;">
+              <span>Videos Queue (<span id="vidQueueCountText">0</span>)</span>
+            </div>
+            <div class="batch-list" id="videoItemsList">
+              <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:24px 0;">No videos in queue. Click "Add Videos" above.</div>
+            </div>
+
+            <!-- Export Actions: Folder vs ZIP -->
+            <div class="control-group" style="margin-top:14px;">
+              <div class="control-label-row">
+                <span style="font-weight:700;">Download Options</span>
+              </div>
+              <div class="export-actions-grid">
+                <button class="btn-folder-download" id="downloadVidFolderBtn" title="Directly write video files into a selected folder on your disk">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  <span>Download Folder</span>
+                </button>
+                <button class="btn-zip-download" id="downloadVidZipBtn" title="Package all renamed videos into a single ZIP archive">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Download ZIP</span>
+                </button>
+              </div>
+              <div class="export-explainer-hint">
+                📁 <strong>Folder</strong>: Saves directly into your computer directory (no extraction needed).<br>
+                📦 <strong>ZIP</strong>: Downloads a standard compressed archive.
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress status indicator -->
+          <div class="batch-progress-box" id="batchProgressBox" style="display:none;">
+            <div class="batch-progress-status">
+              <span id="batchProgressText">Writing files...</span>
+              <span id="batchProgressPercent">0%</span>
+            </div>
+            <div class="batch-progress-bar-bg">
+              <div class="batch-progress-bar-fill" id="batchProgressBarFill"></div>
+            </div>
+          </div>
         </div>
 
         <!-- 12. TOOL: HISTORY & LOGS -->

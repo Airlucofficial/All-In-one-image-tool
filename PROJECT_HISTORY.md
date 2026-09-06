@@ -65,7 +65,7 @@ The **All-in-One Image Tool** (Luminary Image Studio) is a unified, client-side,
 | **TOOL-07** | **Blur & Privacy Censor** | Gaussian blur, radial tilt-shift, mosaic pixelate censor | **Completed** | 2026-09-03 |
 | **TOOL-08** | **Pro Color & Light Adjust**| Brightness, contrast, exposure, saturation, sharpen, warm | **Completed** | 2026-09-03 |
 | **TOOL-09** | **Border, Shadow & Squircle**| Rounded corners, circular avatar, glass shadow, clean frame | **Completed** | 2026-09-03 |
-| **TOOL-10** | **Batch Processor** | Multi-file queue, batch compress/convert, ZIP export | **Completed** | 2026-09-03 |
+| **TOOL-10** | **Batch & Media Renamer** | Multi-media queue for Images & Videos, rule-based renaming, 100% lossless video preservation, Folder & ZIP export | **Completed** | 2026-09-06 |
 | **TOOL-11** | **Palette & Color Picker** | Dominant hex palette extraction & copy | **Completed** | 2026-09-03 |
 | **TOOL-12** | **History & Session Tracker**| Undo/redo stack, action timeline, session auto-save | **Completed** | 2026-09-03 |
 
@@ -113,6 +113,14 @@ The **All-in-One Image Tool** (Luminary Image Studio) is a unified, client-side,
   - **Transparent JPEG Artifact Fix**: Added white background fill when exporting or compressing transparent images to JPEG, preventing black background rendering.
   - **Automated Verification**: Expanded test suite `tests/test-image-tool.js` with Suite 8 covering CanvasEngine export caching, target size budget preservation, and end-to-end 2MB -> 500KB simulation (**19/19 tests passing**).
 
+- **[2026-09-06 17:45:00] BATCH MEDIA RENAMER & FOLDER DIRECT DOWNLOAD (IMAGES & VIDEOS)**:
+  - **Two Dedicated Media Sections**: Designed and implemented separate, specialized sub-sections for **Images** and **Videos** with live badge counters and tab switching.
+  - **100% Lossless Video Preservation**: Video stream files are handled with zero re-encoding, preserving exact original codecs, audio channels, bitrate, and resolution bit-for-bit with perfect fidelity.
+  - **Video Metadata & Frame Extraction**: Engineered client-side video frame capture on offscreen canvas to generate visual thumbnails, extract duration, and detect native dimensions.
+  - **Comprehensive Renaming Rules**: Added Prefix, Suffix, Start sequence number, Padding digits (`1`, `01`, `001`, `0001`), Number mode (append vs replace vs none), Find & Replace with case matching, Letter casing (original, lower, upper, title), and custom tag patterns (`{name}`, `{index}`, `{date}`).
+  - **Dual Export Options (Folder vs ZIP)**: Integrated modern File System Access API (`window.showDirectoryPicker()`) allowing direct disk folder writing without needing extraction, plus standard ZIP packaging with video STORE optimization.
+  - **Automated Verification**: Added Suite 9 in `tests/test-image-tool.js` covering video queue ingestion, lossless blob validation, renaming rules, duration formatting, and folder export mocks (**27/27 tests passing**).
+
 ---
 
 ## 5. Live Browser Session History (Auto-Saved)
@@ -122,4 +130,5 @@ The **All-in-One Image Tool** (Luminary Image Studio) is a unified, client-side,
 | 2026-09-03 21:38:00 | **System Audit** | Successfully synchronized source of truth file with local server auto-save API |
 | 2026-09-03 21:38:30 | **Automated Test** | Verified server auto-save integration |
 | 2026-09-05 15:50:00 | **Bug Fix** | Fixed target size compression and export pipeline to strictly adhere to target KB budget |
+| 2026-09-06 17:45:00 | **Batch & Media Renamer** | Added image & video batch renaming system with 100% lossless video quality and folder/zip dual export |
 

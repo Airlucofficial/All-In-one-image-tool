@@ -35,7 +35,7 @@ This automatically launches the server at `http://localhost:8080/index.html` and
 | **Pro Color & Light Adjust** | Brightness, Contrast, Saturation, Exposure, Warmth/Temperature, and Convolution Sharpening.<br>One-click presets: *Vivid*, *Noir*, *Warm Glow*, *Cool Studio*, *Sepia*. |
 | **Border, Squircle & Mockups** | Corner radius with **Apple Squircle continuous curvature**, outer borders, floating drop shadow, and canvas mockup padding. |
 | **Color Palette Extractor** | Automatic dominant 6-color palette extraction with hex codes, one-click copy to clipboard, and interactive eyedropper loupe. |
-| **Batch Multi-Image Processor** | Multi-file queue for bulk format conversion, resizing, and one-click **"Download All as ZIP"** using client-side JSZip. |
+| **Batch & Media Renamer** | **Two Dedicated Sections (Images & Videos)** with rule-based renaming (Prefix, Suffix, Sequence padding `1`, `01`, `001`, Find & Replace, Casing).<br>**100% Lossless Video Quality**: Original video & audio bitstreams are preserved bit-for-bit with zero re-encoding.<br>**Folder vs. ZIP Export**: Download directly into a local folder (no extraction needed via File System Access API) or export as a ZIP archive. |
 | **History & Auto-Save Tracking** | Step-by-step Undo/Redo stack (Ctrl+Z / Ctrl+Y), Before/After split curtain viewer, automatic 5-minute session checkpoints, and synchronization with `PROJECT_HISTORY.md`. |
 
 ---
@@ -45,4 +45,4 @@ Run the test suite via:
 ```bash
 node tests/test-image-tool.js
 ```
-Verified passing 14/14 tests across Megapixel math, aspect ratio geometry, color distances, MIME resolution, batch queue, filename de-duplication, crop handle calculations, budget compliance, and history persistence.
+Verified passing **27/27 tests** across Megapixel math, aspect ratio geometry, color distances, MIME resolution, batch queue, filename de-duplication, crop handle calculations, budget compliance, history persistence, video queue filtering, lossless bit-for-bit stream preservation, renaming patterns, duration formatting, and folder direct export mocks.

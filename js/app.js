@@ -449,11 +449,26 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
     if (e.dataTransfer.files.length) {
-      if (currentTool === 'batch') {
-        batch.addFiles(e.dataTransfer.files);
-        renderBatchQueue();
+      const files = Array.from(e.dataTransfer.files);
+      const hasVideos = files.some(f => batch.isVideoFile(f));
+      if (currentTool === 'batch' || hasVideos) {
+        if (currentTool !== 'batch') {
+          switchTool('batch');
+        }
+        const imgFiles = files.filter(f => batch.isImageFile(f));
+        const vidFiles = files.filter(f => batch.isVideoFile(f));
+        if (imgFiles.length) {
+          batch.addFiles(imgFiles);
+          renderBatchQueue();
+        }
+        if (vidFiles.length) {
+          switchBatchSubSection('videos');
+          batch.addVideoFiles(vidFiles, () => renderVideoQueue());
+          renderVideoQueue();
+        }
+        showToast(`Added ${files.length} file(s) to Batch Renamer`);
       } else {
-        handleFile(e.dataTransfer.files[0]);
+        handleFile(files[0]);
       }
     }
   });
@@ -470,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     adjust: { title: 'Pro Adjustments & Filters', sub: 'Color grading, warmth, exposure and sharpen' },
     border: { title: 'Border, Squircle & Mockup', sub: 'Apple rounded corners, frame and drop shadow' },
     palette: { title: 'Color Palette Extractor', sub: 'Sample dominant hex colors and pixel loupe' },
-    batch: { title: 'Batch Multi-Image Processor', sub: 'Bulk convert, resize and export ZIP' },
+    batch: { title: 'Batch Media Renamer & Organizer', sub: 'Rename images & videos with lossless quality, export to Folder or ZIP' },
     history: { title: 'Session History & Source of Truth', sub: 'Real-time action log and auto-save checkpoints' }
   };
 
@@ -1492,20 +1507,157 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Click anywhere on the image to inspect color');
   });
 
-  // --- TOOL 11: BATCH PROCESSOR ---
+  // --- TOOL 11: BATCH & MEDIA RENAMER (IMAGES & VIDEOS) ---
+  const tabBatchImages = document.getElementById('tabBatchImages');
+  const tabBatchVideos = document.getElementById('tabBatchVideos');
+  const batchImagesSubSection = document.getElementById('batchImagesSubSection');
+  const batchVideosSubSection = document.getElementById('batchVideosSubSection');
+  const badgeBatchImgCount = document.getElementById('badgeBatchImgCount');
+  const badgeBatchVidCount = document.getElementById('badgeBatchVidCount');
+  const imgQueueCountText = document.getElementById('imgQueueCountText');
+  const vidQueueCountText = document.getElementById('vidQueueCountText');
+
+  // Image controls
   const batchFilesInput = document.getElementById('batchFilesInput');
+  const clearImgQueueBtn = document.getElementById('clearImgQueueBtn');
   const batchItemsList = document.getElementById('batchItemsList');
   const batchFormatGroup = document.querySelectorAll('#batchFormatGroup .pill-option-btn');
-  const startBatchBtn = document.getElementById('startBatchBtn');
-  const downloadBatchZipBtn = document.getElementById('downloadBatchZipBtn');
+  const downloadImgFolderBtn = document.getElementById('downloadImgFolderBtn');
+  const downloadImgZipBtn = document.getElementById('downloadImgZipBtn');
 
+  const imgRenamePrefix = document.getElementById('imgRenamePrefix');
+  const imgRenameSuffix = document.getElementById('imgRenameSuffix');
+  const imgRenameStart = document.getElementById('imgRenameStart');
+  const imgRenamePadding = document.getElementById('imgRenamePadding');
+  const imgRenameNumMode = document.getElementById('imgRenameNumMode');
+  const imgRenameCase = document.getElementById('imgRenameCase');
+  const imgRenameFind = document.getElementById('imgRenameFind');
+  const imgRenameReplace = document.getElementById('imgRenameReplace');
+
+  // Video controls
+  const batchVideosInput = document.getElementById('batchVideosInput');
+  const clearVidQueueBtn = document.getElementById('clearVidQueueBtn');
+  const videoItemsList = document.getElementById('videoItemsList');
+  const downloadVidFolderBtn = document.getElementById('downloadVidFolderBtn');
+  const downloadVidZipBtn = document.getElementById('downloadVidZipBtn');
+
+  const vidRenamePrefix = document.getElementById('vidRenamePrefix');
+  const vidRenameSuffix = document.getElementById('vidRenameSuffix');
+  const vidRenameStart = document.getElementById('vidRenameStart');
+  const vidRenamePadding = document.getElementById('vidRenamePadding');
+  const vidRenameNumMode = document.getElementById('vidRenameNumMode');
+  const vidRenameCase = document.getElementById('vidRenameCase');
+  const vidRenameFind = document.getElementById('vidRenameFind');
+  const vidRenameReplace = document.getElementById('vidRenameReplace');
+
+  // Progress elements
+  const batchProgressBox = document.getElementById('batchProgressBox');
+  const batchProgressText = document.getElementById('batchProgressText');
+  const batchProgressPercent = document.getElementById('batchProgressPercent');
+  const batchProgressBarFill = document.getElementById('batchProgressBarFill');
+
+  // 1. Sub-Tab Switching (Images vs Videos)
+  function switchBatchSubSection(sub) {
+    const isImg = sub === 'images';
+    tabBatchImages.classList.toggle('active', isImg);
+    tabBatchVideos.classList.toggle('active', !isImg);
+    batchImagesSubSection.style.display = isImg ? 'block' : 'none';
+    batchVideosSubSection.style.display = isImg ? 'none' : 'block';
+  }
+
+  tabBatchImages.addEventListener('click', () => switchBatchSubSection('images'));
+  tabBatchVideos.addEventListener('click', () => switchBatchSubSection('videos'));
+
+  // 2. Read Renaming Options & Update Live Previews
+  function getImgRenameOptionsFromUI() {
+    return {
+      prefix: imgRenamePrefix ? imgRenamePrefix.value : '',
+      suffix: imgRenameSuffix ? imgRenameSuffix.value : '',
+      startNumber: parseInt(imgRenameStart ? imgRenameStart.value : '1', 10) || 1,
+      padding: parseInt(imgRenamePadding ? imgRenamePadding.value : '2', 10) || 1,
+      numberMode: imgRenameNumMode ? imgRenameNumMode.value : 'append',
+      caseFormat: imgRenameCase ? imgRenameCase.value : 'original',
+      findText: imgRenameFind ? imgRenameFind.value : '',
+      replaceText: imgRenameReplace ? imgRenameReplace.value : ''
+    };
+  }
+
+  function getVidRenameOptionsFromUI() {
+    return {
+      prefix: vidRenamePrefix ? vidRenamePrefix.value : '',
+      suffix: vidRenameSuffix ? vidRenameSuffix.value : '',
+      startNumber: parseInt(vidRenameStart ? vidRenameStart.value : '1', 10) || 1,
+      padding: parseInt(vidRenamePadding ? vidRenamePadding.value : '2', 10) || 1,
+      numberMode: vidRenameNumMode ? vidRenameNumMode.value : 'append',
+      caseFormat: vidRenameCase ? vidRenameCase.value : 'original',
+      findText: vidRenameFind ? vidRenameFind.value : '',
+      replaceText: vidRenameReplace ? vidRenameReplace.value : ''
+    };
+  }
+
+  function onImgRenameInputChange() {
+    batch.setRenameOptions('image', getImgRenameOptionsFromUI());
+    renderBatchQueue();
+  }
+
+  function onVidRenameInputChange() {
+    batch.setRenameOptions('video', getVidRenameOptionsFromUI());
+    renderVideoQueue();
+  }
+
+  [imgRenamePrefix, imgRenameSuffix, imgRenameStart, imgRenamePadding, imgRenameNumMode, imgRenameCase, imgRenameFind, imgRenameReplace]
+    .forEach(el => {
+      if (el) {
+        el.addEventListener('input', onImgRenameInputChange);
+        el.addEventListener('change', onImgRenameInputChange);
+      }
+    });
+
+  [vidRenamePrefix, vidRenameSuffix, vidRenameStart, vidRenamePadding, vidRenameNumMode, vidRenameCase, vidRenameFind, vidRenameReplace]
+    .forEach(el => {
+      if (el) {
+        el.addEventListener('input', onVidRenameInputChange);
+        el.addEventListener('change', onVidRenameInputChange);
+      }
+    });
+
+  // 3. Image Files Ingestion
   batchFilesInput.addEventListener('change', (e) => {
     if (e.target.files.length) {
       batch.addFiles(e.target.files);
+      batch.setRenameOptions('image', getImgRenameOptionsFromUI());
       renderBatchQueue();
+      showToast(`Added ${e.target.files.length} image(s) to queue`);
+      e.target.value = '';
     }
   });
 
+  clearImgQueueBtn.addEventListener('click', () => {
+    batch.clearQueue();
+    renderBatchQueue();
+    showToast('Cleared image queue');
+  });
+
+  // 4. Video Files Ingestion
+  batchVideosInput.addEventListener('change', async (e) => {
+    if (e.target.files.length) {
+      const filesCount = e.target.files.length;
+      showToast(`Loading ${filesCount} video(s)...`);
+      await batch.addVideoFiles(e.target.files, () => renderVideoQueue());
+      batch.setRenameOptions('video', getVidRenameOptionsFromUI());
+      renderVideoQueue();
+      showToast(`Added ${filesCount} video(s) to queue`);
+      e.target.value = '';
+    }
+  });
+
+  clearVidQueueBtn.addEventListener('click', () => {
+    batch.clearVideoQueue();
+    renderVideoQueue();
+    showToast('Cleared video queue');
+  });
+
+  // 5. Image Format Option Pills
   batchFormatGroup.forEach(btn => {
     btn.addEventListener('click', () => {
       batchFormatGroup.forEach(b => b.classList.remove('active'));
@@ -1513,9 +1665,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // 6. Queue Rendering: Images
   function renderBatchQueue() {
-    if (batch.queue.length === 0) {
-      batchItemsList.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:20px 0;">No images in batch queue</div>';
+    const count = batch.queue.length;
+    if (badgeBatchImgCount) badgeBatchImgCount.textContent = count;
+    if (imgQueueCountText) imgQueueCountText.textContent = count;
+
+    if (count === 0) {
+      batchItemsList.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:24px 0;">No images in queue. Click "Add Images" above.</div>';
       return;
     }
 
@@ -1525,16 +1682,22 @@ document.addEventListener('DOMContentLoaded', () => {
       row.className = 'batch-item';
       row.innerHTML = `
         <div class="batch-item-left">
-          <img class="batch-thumb" src="${item.thumbUrl}">
-          <div>
-            <div class="batch-item-name">${item.name}</div>
-            <div style="font-size:0.72rem;color:var(--text-muted);">${SmartCompressor.formatBytes(item.size)}</div>
+          <div class="batch-thumb-wrap">
+            ${item.thumbUrl ? `<img class="batch-thumb" src="${item.thumbUrl}" alt="Thumb">` : `<svg class="batch-thumb-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`}
+          </div>
+          <div class="batch-item-info">
+            <div class="batch-rename-flow">
+              <span class="batch-rename-orig" title="${item.name}">${item.name}</span>
+              <span class="batch-rename-arrow">➔</span>
+              <span class="batch-rename-new" title="${item.renamedName || item.name}">${item.renamedName || item.name}</span>
+            </div>
+            <div class="batch-meta-sub">
+              <span>${SmartCompressor.formatBytes(item.size)}</span>
+              <span style="font-weight:600;color:${item.status === 'done' ? 'var(--accent-emerald)' : 'var(--text-muted)'};">${item.status.toUpperCase()}</span>
+            </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:0.72rem;text-transform:uppercase;font-weight:600;color:${item.status === 'done' ? 'var(--accent-emerald)' : 'var(--text-muted)'};">${item.status}</span>
-          <button class="sample-btn" style="padding:2px 8px;" onclick="window.removeBatchItem('${item.id}')">✕</button>
-        </div>
+        <button class="sample-btn" style="padding:4px 8px;font-size:0.75rem;" onclick="window.removeBatchItem('${item.id}')" title="Remove">✕</button>
       `;
       batchItemsList.appendChild(row);
     });
@@ -1545,31 +1708,145 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBatchQueue();
   };
 
-  startBatchBtn.addEventListener('click', () => {
-    if (batch.queue.length === 0) {
-      showToast('Add images to the batch queue first');
+  // 7. Queue Rendering: Videos
+  function renderVideoQueue() {
+    const count = batch.videoQueue.length;
+    if (badgeBatchVidCount) badgeBatchVidCount.textContent = count;
+    if (vidQueueCountText) vidQueueCountText.textContent = count;
+
+    if (count === 0) {
+      videoItemsList.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:24px 0;">No videos in queue. Click "Add Videos" above.</div>';
       return;
     }
 
-    const fmt = document.querySelector('#batchFormatGroup .pill-option-btn.active').dataset.fmt;
-    startBatchBtn.textContent = 'Processing...';
-    startBatchBtn.disabled = true;
+    videoItemsList.innerHTML = '';
+    batch.videoQueue.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'batch-item';
+      const durationFormatted = batch.formatDuration(item.duration);
+      const resLabel = (item.width && item.height) ? `${item.width}x${item.height}` : '';
 
-    batch.processAll({ format: fmt, quality: 0.85 }, (item) => {
-      renderBatchQueue();
-    }, (processed) => {
-      startBatchBtn.textContent = 'Process All Images';
-      startBatchBtn.disabled = false;
-      downloadBatchZipBtn.style.display = 'inline-flex';
-      history.logAction('Batch Processing', `Processed ${processed.length} images to ${fmt.toUpperCase()}`);
-      showToast(`Finished processing ${processed.length} images!`);
+      row.innerHTML = `
+        <div class="batch-item-left">
+          <div class="batch-thumb-wrap">
+            ${item.thumbUrl ? `<img class="batch-thumb" src="${item.thumbUrl}" alt="Video Thumb">` : `<svg class="batch-thumb-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`}
+            ${durationFormatted !== '0:00' ? `<span class="batch-vid-badge">${durationFormatted}</span>` : ''}
+          </div>
+          <div class="batch-item-info">
+            <div class="batch-rename-flow">
+              <span class="batch-rename-orig" title="${item.name}">${item.name}</span>
+              <span class="batch-rename-arrow">➔</span>
+              <span class="batch-rename-new" title="${item.renamedName || item.name}">${item.renamedName || item.name}</span>
+            </div>
+            <div class="batch-meta-sub">
+              <span>${SmartCompressor.formatBytes(item.size)}</span>
+              ${resLabel ? `<span>${resLabel}</span>` : ''}
+              <span style="color:var(--accent-emerald);font-weight:600;">100% QUALITY</span>
+            </div>
+          </div>
+        </div>
+        <button class="sample-btn" style="padding:4px 8px;font-size:0.75rem;" onclick="window.removeVideoBatchItem('${item.id}')" title="Remove">✕</button>
+      `;
+      videoItemsList.appendChild(row);
     });
-  });
+  }
 
-  downloadBatchZipBtn.addEventListener('click', () => {
-    batch.downloadZip('luminary-batch-exported.zip');
-    showToast('Downloaded ZIP archive!');
-  });
+  window.removeVideoBatchItem = (id) => {
+    batch.removeVideoItem(id);
+    renderVideoQueue();
+  };
+
+  // 8. Progress Helper
+  function showBatchProgress(text, percent) {
+    if (!batchProgressBox) return;
+    batchProgressBox.style.display = 'flex';
+    if (batchProgressText) batchProgressText.textContent = text;
+    if (batchProgressPercent) batchProgressPercent.textContent = `${Math.round(percent)}%`;
+    if (batchProgressBarFill) batchProgressBarFill.style.width = `${percent}%`;
+  }
+
+  function hideBatchProgress(delayMs = 1500) {
+    setTimeout(() => {
+      if (batchProgressBox) batchProgressBox.style.display = 'none';
+    }, delayMs);
+  }
+
+  // 9. Export Handlers: Folder & ZIP
+  async function executeMediaFolderExport(type) {
+    const queue = type === 'video' ? batch.videoQueue : batch.queue;
+    if (queue.length === 0) {
+      showToast(`Please add ${type} files to the queue first`);
+      return;
+    }
+
+    const options = type === 'video' ? getVidRenameOptionsFromUI() : getImgRenameOptionsFromUI();
+    const activeFormat = document.querySelector('#batchFormatGroup .pill-option-btn.active');
+    const fmt = activeFormat ? activeFormat.dataset.fmt : 'original';
+    options.keepOriginal = (fmt === 'original');
+    options.format = (fmt === 'original') ? 'image/jpeg' : fmt;
+
+    showBatchProgress(`Selecting destination folder...`, 0);
+
+    try {
+      const result = await batch.exportToFolder(type, options, (saved, total, currentName) => {
+        const pct = (saved / total) * 100;
+        showBatchProgress(`Saving file ${saved}/${total}: ${currentName}`, pct);
+      });
+
+      if (result.cancelled) {
+        if (batchProgressBox) batchProgressBox.style.display = 'none';
+        return;
+      }
+
+      showBatchProgress(`Completed! Saved ${result.count} file(s).`, 100);
+      hideBatchProgress(1800);
+      history.logAction('Folder Export', `Directly saved ${result.count} renamed ${type}(s) into local folder with 100% quality preservation`);
+      showToast(`🎉 Successfully saved ${result.count} ${type}(s) directly into your folder!`);
+    } catch (err) {
+      console.error('Folder export error:', err);
+      if (batchProgressBox) batchProgressBox.style.display = 'none';
+      showToast(`Export error: ${err.message}`);
+    }
+  }
+
+  async function executeMediaZipExport(type) {
+    const queue = type === 'video' ? batch.videoQueue : batch.queue;
+    if (queue.length === 0) {
+      showToast(`Please add ${type} files to the queue first`);
+      return;
+    }
+
+    const options = type === 'video' ? getVidRenameOptionsFromUI() : getImgRenameOptionsFromUI();
+    const activeFormat = document.querySelector('#batchFormatGroup .pill-option-btn.active');
+    const fmt = activeFormat ? activeFormat.dataset.fmt : 'original';
+    options.keepOriginal = (fmt === 'original');
+    options.format = (fmt === 'original') ? 'image/jpeg' : fmt;
+
+    showBatchProgress(`Packaging ZIP archive...`, 10);
+
+    try {
+      const zipName = type === 'video' ? 'luminary-renamed-videos.zip' : 'luminary-renamed-images.zip';
+      const result = await batch.downloadZip(type, zipName, options, (processed, total) => {
+        const pct = (processed / total) * 100;
+        showBatchProgress(`Packaging ${processed}/${total} file(s)...`, pct);
+      });
+
+      showBatchProgress(`Done! Downloaded ${result.count} file(s).`, 100);
+      hideBatchProgress(1800);
+      history.logAction('ZIP Export', `Exported ${result.count} renamed ${type}(s) as ZIP archive`);
+      showToast(`📦 Downloaded ${zipName}!`);
+    } catch (err) {
+      console.error('ZIP export error:', err);
+      if (batchProgressBox) batchProgressBox.style.display = 'none';
+      showToast(`Export error: ${err.message}`);
+    }
+  }
+
+  // Connect Download Buttons
+  downloadImgFolderBtn.addEventListener('click', () => executeMediaFolderExport('image'));
+  downloadImgZipBtn.addEventListener('click', () => executeMediaZipExport('image'));
+  downloadVidFolderBtn.addEventListener('click', () => executeMediaFolderExport('video'));
+  downloadVidZipBtn.addEventListener('click', () => executeMediaZipExport('video'));
 
   // --- TOOL 12: HISTORY & MODAL ---
   function renderHistoryLists(actions) {

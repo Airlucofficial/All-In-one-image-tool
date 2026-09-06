@@ -431,6 +431,167 @@ async function runSuite8() {
     assert.notStrictEqual(exportedBlob.size, 2097152, 'Exported blob must NOT be 2 MB original file size');
   });
 
+  // 9. Suite 9: Batch Renamer (Images & Videos) + Dual Folder/ZIP Export
+  console.log('\n--- Suite 9: Batch Renamer (Images & Videos) & Export Options ---');
+
+  it('correctly filters image vs video files in batch queue', async () => {
+    const bp = new BatchProcessor();
+    bp.addFiles([
+      { name: 'photo.jpg', size: 1000, type: 'image/jpeg' },
+      { name: 'clip.mp4', size: 5000, type: 'video/mp4' } // Not an image -> ignored in addFiles
+    ]);
+    assert.strictEqual(bp.queue.length, 1);
+    assert.strictEqual(bp.queue[0].name, 'photo.jpg');
+
+    await bp.addVideoFiles([
+      { name: 'holiday.mp4', size: 10485760, type: 'video/mp4' },
+      { name: 'drone.mov', size: 20971520, type: 'video/quicktime' },
+      { name: 'note.txt', size: 200, type: 'text/plain' } // Not a video -> ignored in addVideoFiles
+    ]);
+    assert.strictEqual(bp.videoQueue.length, 2);
+    assert.strictEqual(bp.videoQueue[0].name, 'holiday.mp4');
+    assert.strictEqual(bp.videoQueue[1].name, 'drone.mov');
+  });
+
+  it('guarantees 100% lossless bit-for-bit video preservation (zero re-encoding)', async () => {
+    const bp = new BatchProcessor();
+    const rawVideoBytes = new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32]);
+    const mockVideoFile = {
+      name: 'camera_raw.mp4',
+      size: rawVideoBytes.length,
+      type: 'video/mp4',
+      content: [rawVideoBytes]
+    };
+
+    await bp.addVideoFiles([mockVideoFile]);
+    const queued = bp.videoQueue[0];
+
+    // Verify blob is exactly the original file object with identical bytes & size
+    assert.strictEqual(queued.blob, mockVideoFile, 'Video blob must reference the original file');
+    assert.strictEqual(queued.blob.size, rawVideoBytes.length, 'Video byte size must be 100% identical');
+    assert.strictEqual(queued.blob.type, 'video/mp4');
+  });
+
+  it('computes prefix, suffix, and sequence numbering with zero padding', () => {
+    const bp = new BatchProcessor();
+    const item = { name: 'IMG_4821.JPG', type: 'image' };
+
+    // Mode: append sequence number with 2-digit padding
+    const name1 = bp.computeRenamedName(item, {
+      prefix: 'Vacation_',
+      suffix: '_Final',
+      startNumber: 1,
+      padding: 2,
+      numberMode: 'append',
+      caseFormat: 'original'
+    }, 0);
+    assert.strictEqual(name1, 'Vacation_IMG_4821_01_Final.JPG');
+
+    // Sequence index 4 -> '05'
+    const name2 = bp.computeRenamedName(item, {
+      prefix: 'Vacation_',
+      suffix: '_Final',
+      startNumber: 1,
+      padding: 3,
+      numberMode: 'replace',
+      caseFormat: 'lowercase'
+    }, 4);
+    assert.strictEqual(name2, 'vacation_005_final.jpg');
+  });
+
+  it('handles find and replace with case sensitivity and casing transformations', () => {
+    const bp = new BatchProcessor();
+    const item = { name: 'DJI_0042_RAW.MOV', type: 'video' };
+
+    const renamed = bp.computeRenamedName(item, {
+      prefix: '',
+      suffix: '',
+      findText: 'DJI',
+      replaceText: 'Cinematic_Flight',
+      caseFormat: 'titlecase'
+    }, 0);
+
+    // Cinematic_Flight_0042_RAW.MOV titlecased
+    assert(renamed.startsWith('Cinematic_Flight'), `Should replace DJI: ${renamed}`);
+    assert(renamed.endsWith('.mov') || renamed.endsWith('.MOV'));
+  });
+
+  it('resolves custom pattern tags {name}, {index}, and {ext}', () => {
+    const bp = new BatchProcessor();
+    const item = { name: 'landscape.png', type: 'image' };
+
+    const renamed = bp.computeRenamedName(item, {
+      mode: 'pattern',
+      pattern: 'Art_{name}_vol_{index}',
+      startNumber: 10,
+      padding: 3
+    }, 0);
+
+    assert.strictEqual(renamed, 'Art_landscape_vol_010.png');
+  });
+
+  it('de-duplicates conflicting names in video and image queues', () => {
+    const bp = new BatchProcessor();
+    const mockVideos = [
+      { name: 'reel.mp4', type: 'video' },
+      { name: 'reel.mp4', type: 'video' },
+      { name: 'reel.mp4', type: 'video' }
+    ];
+
+    const uniqueNames = bp.resolveUniqueNames(mockVideos, {
+      prefix: 'Shorts_',
+      numberMode: 'none'
+    });
+
+    assert.deepStrictEqual(uniqueNames, [
+      'Shorts_reel.mp4',
+      'Shorts_reel_1.mp4',
+      'Shorts_reel_2.mp4'
+    ]);
+  });
+
+  it('formats video duration accurately in HH:MM:SS and MM:SS', () => {
+    const bp = new BatchProcessor();
+    assert.strictEqual(bp.formatDuration(45), '0:45');
+    assert.strictEqual(bp.formatDuration(125), '2:05');
+    assert.strictEqual(bp.formatDuration(3665), '1:01:05');
+  });
+
+  it('simulates folder direct export via directory picker mock', async () => {
+    const bp = new BatchProcessor();
+    const writtenFiles = {};
+
+    // Mock File System Access API
+    global.window = {
+      showDirectoryPicker: async () => ({
+        getFileHandle: async (name) => ({
+          createWritable: async () => ({
+            write: async (data) => { writtenFiles[name] = data; },
+            close: async () => {}
+          })
+        })
+      })
+    };
+
+    const mockItem = {
+      name: 'family.mp4',
+      file: { name: 'family.mp4', size: 5000, type: 'video/mp4' },
+      blob: { name: 'family.mp4', size: 5000, type: 'video/mp4' }
+    };
+    bp.videoQueue = [mockItem];
+
+    const result = await bp.exportToFolder('video', {
+      prefix: 'Archived_',
+      numberMode: 'none'
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.count, 1);
+    assert.strictEqual(result.method, 'directoryPicker');
+    assert('Archived_family.mp4' in writtenFiles, 'File must be written directly to directory with renamed filename');
+    delete global.window;
+  });
+
   console.log(`\n======================================================`);
   console.log(`Test Execution Finished: ${passedTests}/${totalTests} Passed.`);
   console.log(`======================================================\n`);
@@ -441,5 +602,6 @@ async function runSuite8() {
 }
 
 runSuite8();
+
 
 
